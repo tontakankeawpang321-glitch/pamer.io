@@ -1,253 +1,458 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MediCheck AI - ประเมินอาการเบื้องต้น</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Kanit', sans-serif;
-            background-color: #f8fafc;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .chat-container {
-            flex: 1;
-            overflow-y: auto;
-            scroll-behavior: smooth;
-        }
-        .glass-header {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-        }
-        .message-bubble {
-            max-width: 85%;
-            animation: fadeIn 0.3s ease-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .typing-dot {
-            width: 6px;
-            height: 6px;
-            background: #94a3b8;
-            border-radius: 50%;
-            animation: bounce 1.4s infinite ease-in-out;
-        }
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1.0); }
-        }
-        input, select, textarea {
-            font-size: 16px !important; 
-        }
-    </style>
-</head>
-<body>
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Stethoscope, 
+  Activity, 
+  AlertTriangle, 
+  ChevronRight, 
+  ClipboardList, 
+  HeartPulse,
+  RefreshCw,
+  FileText,
+  AlertCircle,
+  CheckCircle2,
+  Navigation,
+  Thermometer,
+  ChevronDown
+} from 'lucide-react';
 
-    <!-- Header -->
-    <header class="glass-header sticky top-0 z-10 px-6 py-4 flex items-center justify-between shadow-sm">
-        <div class="flex items-center space-x-3">
-            <div class="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-200">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
+const App = () => {
+  const [step, setStep] = useState('input'); // 'input', 'loading', 'result'
+  const [formData, setFormData] = useState({
+    age: '',
+    gender: 'not-specified',
+    temperature: 'normal',
+    pressure: 'unknown',
+    underlying_conditions: [],
+    allergies: '',
+    symptoms: '',
+    pain_score: 5,
+    duration: '',
+    duration_unit: 'วัน'
+  });
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const resultRef = useRef(null);
+
+  const apiKey = ""; // API Key will be injected at runtime
+
+  // ตัวเลือกโรคประจำตัวแบบย่อ
+  const commonConditions = [
+    "เบาหวาน", "ความดันฯสูง", "ไขมันฯสูง", "โรคหัวใจ", "หอบหืด", "โรคไต"
+  ];
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const toggleCondition = (condition) => {
+    setFormData(prev => {
+      const current = prev.underlying_conditions;
+      if (current.includes(condition)) {
+        return { ...prev, underlying_conditions: current.filter(c => c !== condition) };
+      } else {
+        return { ...prev, underlying_conditions: [...current, condition] };
+      }
+    });
+  };
+
+  const analyzeSymptoms = async () => {
+    if (!formData.symptoms || !formData.age) {
+      alert('กรุณากรอกข้อมูลสำคัญ: อายุ และ อาการหลัก');
+      return;
+    }
+
+    setStep('loading');
+    setError(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    const systemPrompt = `Role: Professional Medical Triage AI (ระบบคัดกรองผู้ป่วย)
+    Task: Analyze patient data to assess urgency and potential conditions.
+    Output: JSON format only. Strict medical terminology translation to Thai.
+    
+    Data Structure:
+    {
+      "triageLevel": "Non-Urgent" | "Urgent" | "Emergency",
+      "triageColor": "green" | "yellow" | "red",
+      "clinicalSummary": "สรุปอาการแบบกระชับ",
+      "differentialDiagnosis": ["โรคที่เข้าข่าย 1", "โรคที่เข้าข่าย 2"],
+      "vitalSignAnalysis": "วิเคราะห์สัญญาณชีพ (ถ้ามีข้อมูล)",
+      "immediateAction": "สิ่งที่ต้องทำทันที",
+      "lifestyleAdvice": ["คำแนะนำดูแลตนเอง"],
+      "redFlags": ["สัญญาณอันตราย"],
+      "departmentReferral": "แผนกที่แนะนำ"
+    }`;
+
+    // แปลงค่าตัวเลือกเป็นข้อความสำหรับ AI
+    const tempMap = {
+      'normal': 'Normal (ปกติ)',
+      'warm': 'Low Grade Fever (ตัวรุมๆ)',
+      'hot': 'High Fever (ตัวร้อนจัด)'
+    };
+    
+    const bpMap = {
+      'unknown': 'Unknown',
+      'normal': 'Normal',
+      'low': 'Hypotension (ต่ำ)',
+      'high': 'Hypertension (สูง)'
+    };
+
+    const userQuery = `Patient Data:
+    - Age: ${formData.age}, Gender: ${formData.gender}
+    - Temp: ${tempMap[formData.temperature]}
+    - BP Status: ${bpMap[formData.pressure]}
+    - History: ${formData.underlying_conditions.join(', ')}
+    - Allergies: ${formData.allergies || 'None'}
+    - Symptoms: ${formData.symptoms}
+    - Pain Score: ${formData.pain_score}/10
+    - Duration: ${formData.duration} ${formData.duration_unit}`;
+
+    try {
+      let retries = 0;
+      const maxRetries = 3; 
+      let response;
+
+      while (retries < maxRetries) {
+        try {
+          response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: userQuery }] }],
+              systemInstruction: { parts: [{ text: systemPrompt }] },
+              generationConfig: { responseMimeType: "application/json" }
+            })
+          });
+          if (response.ok) break;
+        } catch (e) {
+          retries++;
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+
+      const data = await response.json();
+      const content = JSON.parse(data.candidates[0].content.parts[0].text);
+      setResult(content);
+      setStep('result');
+      setTimeout(() => {
+        resultRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } catch (err) {
+      setError('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่');
+      setStep('input');
+    }
+  };
+
+  const resetForm = () => {
+    setStep('input');
+    setResult(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 font-['Kanit'] text-slate-800 pb-8">
+      {/* Super Compact Header */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm py-2">
+        <div className="max-w-xl mx-auto px-4 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="bg-teal-600 p-1 rounded-md shadow-sm">
+              <Stethoscope className="h-4 w-4 text-white" />
             </div>
-            <div>
-                <h1 class="font-semibold text-gray-800 text-lg leading-tight">MediCheck AI</h1>
-                <div class="flex items-center">
-                    <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                    <span class="text-xs text-gray-500 uppercase tracking-wider font-medium">ระบบวิเคราะห์อาการ</span>
-                </div>
-            </div>
+            <h1 className="text-base font-bold text-slate-900">MediCheck<span className="text-teal-600">Lite</span></h1>
+          </div>
+          <div className="text-[10px] text-slate-400 font-medium">Rapid Triage</div>
         </div>
-        <button onclick="clearChat()" class="text-gray-400 hover:text-red-500 transition-colors p-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-        </button>
-    </header>
+      </header>
 
-    <!-- Main Chat Area -->
-    <main id="chatWindow" class="chat-container px-4 py-6 space-y-6">
-        <div class="flex items-start">
-            <div class="bg-blue-100 p-2 rounded-full mr-3 border border-blue-200">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                </svg>
-            </div>
-            <div class="message-bubble bg-white shadow-sm border border-gray-100 rounded-2xl rounded-tl-none p-4 text-gray-700 leading-relaxed">
-                สวัสดีครับ เพื่อการวิเคราะห์ที่แม่นยำ โปรดกรอกข้อมูลสุขภาพด้านล่างนี้เพื่อให้ผมช่วยประเมินอาการเบื้องต้นให้คุณครับ
-            </div>
-        </div>
-    </main>
-
-    <!-- Disclaimer & Typing Indicator -->
-    <div id="statusContainer" class="px-6 py-1 bg-white">
-        <div id="typingIndicator" class="hidden flex items-center space-x-1 mb-1">
-            <span class="text-xs text-blue-500 mr-2 italic font-medium">Gemini กำลังวิเคราะห์ข้อมูลของคุณ...</span>
-            <div class="typing-dot"></div>
-            <div class="typing-dot"></div>
-            <div class="typing-dot"></div>
-        </div>
-        <p class="text-[9px] text-center text-gray-400 uppercase tracking-tighter mb-1">
-            ข้อมูลนี้ใช้เพื่อการแนะนำเบื้องต้นเท่านั้น ไม่สามารถทดแทนการตรวจโดยแพทย์ได้
-        </p>
-    </div>
-
-    <!-- Input Form Area -->
-    <footer class="p-4 bg-white border-t border-gray-100 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
-        <div class="max-w-screen-md mx-auto space-y-3">
-            <div class="flex space-x-2">
-                <div class="flex-1">
-                    <label class="text-xs font-semibold text-gray-500 ml-2 mb-1 block">อายุ</label>
+      <main className="max-w-xl mx-auto px-3 mt-4">
+        {step === 'input' && (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="bg-slate-50 px-4 py-2 border-b border-slate-100">
+                <h2 className="text-sm font-bold text-slate-700 flex items-center">
+                  <FileText className="w-3.5 h-3.5 text-teal-600 mr-2" />
+                  ประเมินอาการด่วน
+                </h2>
+              </div>
+              
+              <div className="p-4 space-y-4">
+                {/* 1. Basic Info & Vitals (Grid) */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-500 mb-1 block">อายุ (ปี) *</label>
                     <input 
-                        type="number" 
-                        id="ageInput" 
-                        placeholder="เช่น 25" 
-                        class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
+                      type="number" 
+                      inputMode="numeric"
+                      name="age"
+                      value={formData.age}
+                      onChange={handleInputChange}
+                      className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:border-teal-500 outline-none text-sm transition-all"
+                      placeholder="ระบุ"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-500 mb-1 block">เพศ</label>
+                    <select 
+                      name="gender"
+                      value={formData.gender}
+                      onChange={handleInputChange}
+                      className="w-full h-9 px-2 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:border-teal-500 outline-none text-sm"
                     >
+                      <option value="not-specified">-</option>
+                      <option value="male">ชาย</option>
+                      <option value="female">หญิง</option>
+                    </select>
+                  </div>
+                  
+                  {/* Temperature Select */}
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-500 mb-1 block">อุณหภูมิร่างกาย</label>
+                    <div className="relative">
+                      <select 
+                        name="temperature"
+                        value={formData.temperature}
+                        onChange={handleInputChange}
+                        className="w-full h-9 pl-7 pr-2 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:border-teal-500 outline-none text-sm appearance-none"
+                      >
+                        <option value="normal">ปกติ</option>
+                        <option value="warm">ตัวรุมๆ</option>
+                        <option value="hot">ตัวร้อนจัด</option>
+                      </select>
+                      <Thermometer className="absolute left-2 top-2.5 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                      <ChevronDown className="absolute right-2 top-3 w-3 h-3 text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {/* BP Select */}
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-500 mb-1 block">ความดันโลหิต</label>
+                    <div className="relative">
+                      <select 
+                        name="pressure"
+                        value={formData.pressure}
+                        onChange={handleInputChange}
+                        className="w-full h-9 pl-7 pr-2 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:border-teal-500 outline-none text-sm appearance-none"
+                      >
+                        <option value="unknown">ไม่ทราบ</option>
+                        <option value="normal">ปกติ</option>
+                        <option value="low">ต่ำ</option>
+                        <option value="high">สูง</option>
+                      </select>
+                      <Activity className="absolute left-2 top-2.5 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                      <ChevronDown className="absolute right-2 top-3 w-3 h-3 text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
                 </div>
-                <div class="flex-[2]">
-                    <label class="text-xs font-semibold text-gray-500 ml-2 mb-1 block">การขับถ่าย</label>
+
+                {/* 2. Conditions (Chips) */}
+                <div>
+                   <label className="text-[11px] font-semibold text-slate-500 mb-2 block">โรคประจำตัว</label>
+                   <div className="flex flex-wrap gap-1.5 mb-2">
+                      {commonConditions.map((cond) => (
+                        <button
+                          key={cond}
+                          onClick={() => toggleCondition(cond)}
+                          className={`text-[10px] py-1 px-2.5 rounded-md border transition-all ${
+                            formData.underlying_conditions.includes(cond)
+                              ? 'bg-teal-600 border-teal-600 text-white'
+                              : 'bg-white border-slate-200 text-slate-600'
+                          }`}
+                        >
+                          {cond}
+                        </button>
+                      ))}
+                    </div>
                     <input 
-                        type="text" 
-                        id="excretionInput" 
-                        placeholder="ปกติ / ท้องผูก / ถ่ายเหลว" 
-                        class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
-                    >
+                      type="text"
+                      name="allergies"
+                      value={formData.allergies}
+                      onChange={handleInputChange}
+                      placeholder="แพ้ยา/แพ้อาหาร (ระบุถ้ามี)"
+                      className="w-full h-8 px-3 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:border-teal-500 text-xs outline-none"
+                    />
                 </div>
+
+                <hr className="border-slate-100" />
+
+                {/* 3. Symptoms (Main) */}
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-500 mb-1.5 block">อาการที่เป็น *</label>
+                  <textarea 
+                    name="symptoms"
+                    value={formData.symptoms}
+                    onChange={handleInputChange}
+                    rows="3"
+                    placeholder="เช่น ปวดท้องขวาล่าง, ไอแห้ง, อ่อนเพลีย..."
+                    className="w-full p-3 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:ring-1 focus:ring-teal-500 outline-none resize-none text-sm leading-relaxed"
+                  ></textarea>
+
+                  <div className="flex items-center gap-3 mt-3">
+                    <div className="w-1/2">
+                      <label className="text-[10px] text-slate-500 mb-1 block">ระยะเวลา</label>
+                      <div className="flex">
+                        <input 
+                          type="number"
+                          inputMode="numeric"
+                          name="duration"
+                          value={formData.duration}
+                          onChange={handleInputChange}
+                          className="w-full h-8 px-2 rounded-l-lg border border-r-0 border-slate-200 bg-slate-50 text-sm focus:bg-white outline-none"
+                          placeholder="ระบุ"
+                        />
+                        <select
+                          name="duration_unit"
+                          value={formData.duration_unit}
+                          onChange={handleInputChange}
+                          className="h-8 px-1 rounded-r-lg border border-slate-200 bg-slate-100 text-xs outline-none"
+                        >
+                          <option value="วัน">วัน</option>
+                          <option value="ชม.">ชม.</option>
+                          <option value="wk">wk</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="w-1/2">
+                      <label className="text-[10px] text-slate-500 mb-1 block flex justify-between">
+                        <span>ความปวด</span>
+                        <span className="font-bold text-teal-600">{formData.pain_score}</span>
+                      </label>
+                      <input 
+                        type="range" 
+                        min="0" max="10" step="1"
+                        name="pain_score"
+                        value={formData.pain_score}
+                        onChange={handleInputChange}
+                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={analyzeSymptoms}
+                  className="w-full mt-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 rounded-xl shadow-md transition-all active:scale-[0.98] flex items-center justify-center space-x-2 text-sm"
+                >
+                  <span>วิเคราะห์ผลทันที</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 'loading' && (
+          <div className="h-[300px] flex flex-col items-center justify-center text-center animate-in fade-in">
+            <div className="relative mb-4">
+              <div className="w-12 h-12 border-4 border-slate-100 border-t-teal-600 rounded-full animate-spin"></div>
+              <HeartPulse className="absolute inset-0 m-auto w-5 h-5 text-teal-600 animate-pulse" />
+            </div>
+            <p className="text-sm font-medium text-slate-600">กำลังวิเคราะห์ข้อมูล...</p>
+          </div>
+        )}
+
+        {step === 'result' && result && (
+          <div ref={resultRef} className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
+            <div className={`rounded-xl shadow-sm border overflow-hidden mb-4 ${
+              result.triageColor === 'red' ? 'bg-red-50 border-red-200' :
+              result.triageColor === 'yellow' ? 'bg-amber-50 border-amber-200' :
+              'bg-teal-50 border-teal-200'
+            }`}>
+              <div className="p-4 flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider opacity-70">ระดับความรุนแรง</div>
+                  <div className={`text-xl font-bold flex items-center ${
+                    result.triageColor === 'red' ? 'text-red-700' :
+                    result.triageColor === 'yellow' ? 'text-amber-700' :
+                    'text-teal-800'
+                  }`}>
+                    {result.triageColor === 'red' ? <AlertTriangle className="mr-2 w-5 h-5" /> : 
+                     result.triageColor === 'yellow' ? <AlertCircle className="mr-2 w-5 h-5" /> : 
+                     <CheckCircle2 className="mr-2 w-5 h-5" />}
+                    {result.triageLevel}
+                  </div>
+                </div>
+                {result.triageColor === 'red' && (
+                  <div className="bg-red-600 text-white text-[10px] px-2 py-1 rounded font-bold">พบแพทย์ทันที</div>
+                )}
+              </div>
             </div>
 
-            <div>
-                <label class="text-xs font-semibold text-gray-500 ml-2 mb-1 block">รายละเอียดอาการที่เป็นอยู่</label>
-                <textarea 
-                    id="symptomInput" 
-                    rows="2" 
-                    placeholder="ระบุอาการ เช่น ปวดท้องด้านขวา, มีไข้ต่ำๆ..." 
-                    class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all resize-none"
-                ></textarea>
-            </div>
+            <div className="space-y-4">
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 mb-3 flex items-center">
+                  <FileText className="w-4 h-4 mr-2 text-slate-400" /> สรุปผล
+                </h3>
+                <p className="text-sm text-slate-700 leading-relaxed mb-3">
+                  {result.clinicalSummary}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {result.differentialDiagnosis.map((dx, i) => (
+                    <span key={i} className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium border border-blue-100">
+                      {dx}
+                    </span>
+                  ))}
+                </div>
+              </div>
 
-            <button 
-                onclick="analyzeSymptoms()" 
-                id="analyzeBtn"
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl shadow-lg shadow-blue-100 flex items-center justify-center space-x-2 transition-all active:scale-95 disabled:opacity-50 disabled:bg-gray-400"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                </svg>
-                <span>วิเคราะห์อาการเดี๋ยวนี้</span>
-            </button>
-        </div>
-    </footer>
-
-    <script>
-        const chatWindow = document.getElementById('chatWindow');
-        const symptomInput = document.getElementById('symptomInput');
-        const ageInput = document.getElementById('ageInput');
-        const excretionInput = document.getElementById('excretionInput');
-        const typingIndicator = document.getElementById('typingIndicator');
-        const analyzeBtn = document.getElementById('analyzeBtn');
-
-        async function analyzeSymptoms() {
-            const symptoms = symptomInput.value.trim();
-            const age = ageInput.value.trim();
-            const excretion = excretionInput.value.trim();
-
-            if (!symptoms) {
-                alert('โปรดระบุอาการของคุณเพื่อให้ AI วิเคราะห์ครับ');
-                return;
-            }
-
-            const userDisplayMessage = `[ข้อมูลผู้ป่วย]\nอายุ: ${age || '-'} ปี\nอาการ: ${symptoms}\nการขับถ่าย: ${excretion || '-'}`;
-            appendMessage('user', userDisplayMessage);
-            
-            symptomInput.value = '';
-            ageInput.value = '';
-            excretionInput.value = '';
-            
-            setLoading(true);
-
-            const systemPrompt = `คุณเป็น AI วิเคราะห์อาการผู้ป่วยเบื้องต้นอย่างเป็นอาชีพ 
-            โปรดวิเคราะห์ข้อมูลดังนี้:
-            1. 🏥 โรคที่เป็นไปได้
-            2. ⚠️ ระดับความเสี่ยง (ต่ำ/ปานกลาง/สูง)
-            3. 💊 วิธีดูแลตัวเองและการรับประทานอาหาร
-            4. 🚑 สัญญาณอันตรายที่ต้องรีบไปพบแพทย์
-            ตอบด้วยภาษาที่เข้าใจง่ายและเป็นกันเอง`;
-
-            const fullPrompt = `${systemPrompt}\n\nข้อมูลผู้ป่วย: อายุ ${age}, อาการ ${symptoms}, การขับถ่าย ${excretion}`;
-
-            try {
-                const response = await fetch("https://pamer.tontakankeawpang321.workers.dev", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ text: fullPrompt })
-                });
-
-                const data = await response.json();
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 mb-3 flex items-center">
+                  <ClipboardList className="w-4 h-4 mr-2 text-slate-400" /> คำแนะนำ
+                </h3>
                 
-                // ✅ Clean response handling based on your new backend structure
-                const reply = data.reply || "ไม่สามารถวิเคราะห์อาการได้ในขณะนี้";
-                appendMessage('bot', formatReply(reply));
-            } catch (error) {
-                console.error(error);
-                appendMessage('bot', 'ขออภัยครับ ระบบเชื่อมต่อขัดข้อง กรุณาลองใหม่ในภายหลัง');
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        function appendMessage(role, content) {
-            const div = document.createElement('div');
-            div.className = `flex items-start ${role === 'user' ? 'justify-end' : ''}`;
-            const isUser = role === 'user';
-            
-            div.innerHTML = `
-                ${!isUser ? `
-                <div class="bg-blue-600 p-2 rounded-full mr-3 mt-1 shadow-md shadow-blue-100 border border-blue-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.789l1.599.799L9 4.323V3a1 1 0 011-1z" clip-rule="evenodd" />
-                    </svg>
+                <div className="mb-3">
+                  <div className="text-xs font-bold text-teal-700 mb-1">สิ่งที่ควรทำ</div>
+                  <p className="text-sm text-slate-700 bg-teal-50 p-2 rounded border border-teal-100">{result.immediateAction}</p>
                 </div>
-                ` : ''}
-                <div class="message-bubble ${isUser ? 'bg-blue-600 text-white rounded-2xl rounded-tr-none shadow-blue-200 shadow-lg' : 'bg-white shadow-sm border border-gray-100 rounded-2xl rounded-tl-none'} p-4 text-sm leading-relaxed whitespace-pre-line font-light">
-                    ${content}
+
+                <ul className="space-y-1.5 mb-3">
+                  {result.lifestyleAdvice.map((advice, i) => (
+                    <li key={i} className="text-sm text-slate-600 flex items-start">
+                      <span className="mr-2 text-teal-500">•</span> {advice}
+                    </li>
+                  ))}
+                </ul>
+
+                {result.redFlags?.length > 0 && (
+                  <div className="bg-red-50 p-3 rounded-lg border border-red-100">
+                    <div className="text-xs font-bold text-red-700 mb-1 flex items-center">
+                      <AlertTriangle className="w-3 h-3 mr-1" /> สัญญาณอันตราย
+                    </div>
+                    <ul className="space-y-1">
+                      {result.redFlags.map((flag, i) => (
+                        <li key={i} className="text-xs text-red-800 flex items-start">
+                          <span className="mr-1.5 text-red-500">!</span> {flag}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-slate-800 text-white rounded-xl p-4 flex justify-between items-center">
+                <div>
+                  <div className="text-[10px] text-slate-400 uppercase">แผนกที่แนะนำ</div>
+                  <div className="font-bold text-teal-400">{result.departmentReferral}</div>
                 </div>
-            `;
-            
-            chatWindow.appendChild(div);
-            chatWindow.scrollTop = chatWindow.scrollHeight;
-        }
+                <button 
+                  onClick={resetForm}
+                  className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-lg transition-colors"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
-        function formatReply(text) {
-            return text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-blue-700 font-semibold">$1</strong>')
-                       .replace(/^\s*[\-\*]\s+/gm, '• ');
-        }
+        {error && (
+          <div className="fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-800 px-4 py-3 rounded-lg shadow-lg z-50 text-xs font-medium">
+             {error}
+             <button onClick={() => setError(null)} className="ml-2 font-bold">✕</button>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
 
-        function setLoading(isLoading) {
-            typingIndicator.classList.toggle('hidden', !isLoading);
-            analyzeBtn.disabled = isLoading;
-            symptomInput.disabled = isLoading;
-            ageInput.disabled = isLoading;
-            excretionInput.disabled = isLoading;
-        }
-
-        function clearChat() {
-            if (confirm('ลบประวัติการวิเคราะห์และเริ่มใหม่ใช่หรือไม่?')) {
-                const initial = chatWindow.firstElementChild.outerHTML;
-                chatWindow.innerHTML = initial;
-            }
-        }
-    </script>
-</body>
-</html>
+export default App;

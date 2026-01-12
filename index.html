@@ -238,8 +238,8 @@
             <div class="mt-5 bg-slate-900 text-white rounded-xl p-5 shadow-lg">
                 <div class="flex items-start justify-between">
                     <div>
-                        <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">คำแนะนำเพิ่มเติม</div>
-                        <div class="text-sm opacity-90 mb-2">ควรไปพบแพทย์ที่แผนก:</div>
+                        <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">คำแนะนำการส่งต่อ</div>
+                        <div class="text-sm opacity-90 mb-2">แผนกแพทย์ที่แนะนำ:</div>
                         <div id="referral-dept" class="text-2xl font-bold text-blue-300">-</div>
                     </div>
                     <div class="bg-white/10 p-3 rounded-lg">
@@ -345,7 +345,7 @@
             // SYSTEM PROMPT: Adjusted for simple Thai, serious tone
             const systemPrompt = `บทบาท: คุณคือ AI ทางการแพทย์ที่ทำหน้าที่คัดกรองผู้ป่วยเบื้องต้น (Medical Triage)
             
-            คำสั่ง: วิเคราะห์ข้อมูลผู้ป่วยที่ได้รับ และประเมินความเร่งด่วน รวมถึงให้คำแนะนำ
+            คำสั่ง: วิเคราะห์ข้อมูลผู้ป่วยที่ได้รับ และประเมินความเร่งด่วน รวมถึงให้คำแนะนำการรักษา
             
             ข้อกำหนดการตอบกลับ:
             1. ตอบเป็น JSON เท่านั้น
@@ -357,12 +357,13 @@
             {
               "triageLevel": "ไม่เร่งด่วน" | "เร่งด่วน" | "ฉุกเฉิน",
               "triageColor": "green" | "yellow" | "red",
-              "clinicalSummary": "สรุปอาการแบบสั้นๆ เข้าใจง่าย",
+              "clinicalSummary": "สรุปอาการและสาเหตุที่เป็นไปได้",
               "differentialDiagnosis": ["โรคที่อาจเป็นไปได้ 1", "โรคที่อาจเป็นไปได้ 2"],
-              "vitalSignAnalysis": "วิเคราะห์ไข้และความดัน (ถ้ามี)",
-              "immediateAction": "สิ่งที่ต้องทำตอนนี้ทันที",
-              "lifestyleAdvice": ["คำแนะนำการดูแลตัวเอง 1", "คำแนะนำ 2"],
-              "redFlags": ["อาการอันตรายที่ต้องสังเกต (ถ้ามีรีบไปรพ.)"],
+              "immediateAction": "การรักษาเบื้องต้นที่ทำได้ทันที",
+              "lifestyleAdvice": ["คำแนะนำการดูแลตัวเอง"],
+              "medicationAdvice": ["ชื่อยาที่แนะนำ (เช่น ยาสามัญประจำบ้าน) พร้อมสรรพคุณสั้นๆ"],
+              "redFlags": ["สัญญาณอันตราย (ถ้ามีอาการเหล่านี้ต้องรีบไปพบแพทย์)"],
+              "doctorVisitCriteria": "คำแนะนำว่าควรไปพบแพทย์เมื่อไร (เช่น ภายใน 24 ชม., หรือถ้ารักษาเบื้องต้นแล้วไม่ดีขึ้น)",
               "departmentReferral": "แผนกแพทย์ที่ควรไปพบ"
             }`;
 
@@ -404,14 +405,13 @@
 
                 const data = await response.json();
                 
-                // Processing response from worker which is expected to return { reply: "JSON_STRING" }
+                // Processing response from worker
                 let content;
                 if (data.reply) {
                     // Clean up potential markdown code blocks
                     const cleanJson = data.reply.replace(/```json\n?|\n?```/g, '').trim();
                     content = JSON.parse(cleanJson);
                 } else {
-                    // Fallback if structure is different
                     console.error("Unexpected response format:", data);
                     throw new Error('รูปแบบข้อมูลตอบกลับไม่ถูกต้อง');
                 }
@@ -453,17 +453,38 @@
                 `<li class="text-base text-slate-700 flex items-start mb-2"><span class="mr-2 text-blue-800 font-bold">•</span> ${item}</li>`
             ).join('');
 
+            // Medication List
+            let medicationHTML = '';
+            if (result.medicationAdvice && result.medicationAdvice.length > 0) {
+                const medItems = result.medicationAdvice.map(item => 
+                    `<li class="text-base text-slate-700 flex items-start mb-2"><span class="mr-2 text-green-600 font-bold">•</span> ${item}</li>`
+                ).join('');
+                medicationHTML = `
+                <div class="mb-5">
+                     <div class="text-sm font-bold text-slate-800 mb-2 flex items-center">
+                        <i data-lucide="pill" class="w-4 h-4 mr-2 text-green-600"></i>
+                        ยาบรรเทาอาการเบื้องต้น (ยาสามัญ)
+                    </div>
+                    <ul class="list-none bg-green-50 p-4 rounded-lg border border-green-100">${medItems}</ul>
+                </div>`;
+            }
+
+            // Red Flags / When to see doctor
             let redFlagsHTML = '';
             if (result.redFlags && result.redFlags.length > 0) {
                 const redFlagItems = result.redFlags.map(flag => 
                     `<li class="text-sm text-red-900 flex items-start mb-1"><span class="mr-2 text-red-600 font-bold">!</span> ${flag}</li>`
                 ).join('');
+                
+                const visitCriteria = result.doctorVisitCriteria ? `<div class="mt-3 text-sm text-red-800 font-medium border-t border-red-200 pt-2">🕒 ${result.doctorVisitCriteria}</div>` : '';
+
                 redFlagsHTML = `
                 <div class="bg-red-50 p-4 rounded-lg border border-red-200 mt-4">
                     <div class="text-sm font-bold text-red-800 mb-2 flex items-center">
-                        <i data-lucide="siren" class="w-4 h-4 mr-2"></i> สัญญาณอันตราย (หากมีต้องรีบไปโรงพยาบาล)
+                        <i data-lucide="siren" class="w-4 h-4 mr-2"></i> สัญญาณที่ควรพบแพทย์ทันที
                     </div>
                     <ul class="list-none">${redFlagItems}</ul>
+                    ${visitCriteria}
                 </div>`;
             }
 
@@ -471,7 +492,7 @@
                 <div class="rounded-xl shadow-lg overflow-hidden mb-6">
                     <div class="${headerBg} p-5 text-white flex items-center justify-between">
                         <div>
-                            <div class="text-xs font-medium opacity-80 uppercase tracking-wider mb-1">ผลการประเมิน</div>
+                            <div class="text-xs font-medium opacity-80 uppercase tracking-wider mb-1">ผลวิเคราะห์ความรุนแรง</div>
                             <div class="text-2xl font-bold flex items-center">
                                 <i data-lucide="${iconName}" class="mr-3 w-6 h-6"></i>
                                 ${statusText}
@@ -482,7 +503,7 @@
                     <div class="bg-white p-5 border border-slate-200 border-t-0 rounded-b-xl">
                         <h3 class="text-lg font-bold text-slate-800 mb-3 flex items-center border-b border-slate-100 pb-2">
                             <i data-lucide="stethoscope" class="w-5 h-5 mr-2 text-slate-500"></i>
-                            สรุปอาการ
+                            ผลการวิเคราะห์อาการ
                         </h3>
                         <p class="text-base text-slate-700 leading-relaxed mb-4">${result.clinicalSummary}</p>
                         
@@ -496,15 +517,18 @@
                 <div class="bg-white rounded-xl shadow-md border border-slate-200 p-5">
                     <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center border-b border-slate-100 pb-3">
                         <i data-lucide="clipboard-check" class="w-5 h-5 mr-2 text-slate-500"></i>
-                        คำแนะนำการดูแล
+                        การรักษาและการดูแล
                     </h3>
                     
                     <div class="mb-5">
                         <div class="text-sm font-bold text-blue-900 bg-blue-50 p-3 rounded-lg border-l-4 border-blue-800 mb-3">
                             สิ่งที่ควรทำทันที: ${result.immediateAction}
                         </div>
+                        <div class="text-sm font-bold text-slate-800 mb-2 mt-4">การปรับพฤติกรรม</div>
                         <ul class="list-none">${lifestyleList}</ul>
                     </div>
+
+                    ${medicationHTML}
 
                     ${redFlagsHTML}
                 </div>

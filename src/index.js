@@ -56,21 +56,39 @@ export default {
 
     const geminiData = await geminiRes.json();
 
-    const reply =
-      geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "ไม่สามารถวิเคราะห์อาการได้ในขณะนี้";
+// DEBUG: ส่ง error จาก Gemini กลับไปให้เห็น
+if (!geminiRes.ok) {
+  return new Response(
+    JSON.stringify({
+      error: "Gemini API error",
+      detail: geminiData
+    }),
+    {
+      status: 500,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+}
 
-    // ===============================
-    // Response
-    // ===============================
-    return new Response(
-      JSON.stringify({ reply }),
-      {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-  },
-};
+// รองรับ response หลายแบบ
+let reply = "ไม่สามารถวิเคราะห์อาการได้ในขณะนี้";
+
+if (geminiData?.candidates?.length > 0) {
+  reply =
+    geminiData.candidates[0]?.content?.parts
+      ?.map(p => p.text)
+      .join("") || reply;
+}
+
+return new Response(
+  JSON.stringify({ reply, raw: geminiData }),
+  {
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "application/json",
+    },
+  }
+);

@@ -1,458 +1,548 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Stethoscope, 
-  Activity, 
-  AlertTriangle, 
-  ChevronRight, 
-  ClipboardList, 
-  HeartPulse,
-  RefreshCw,
-  FileText,
-  AlertCircle,
-  CheckCircle2,
-  Navigation,
-  Thermometer,
-  ChevronDown
-} from 'lucide-react';
-
-const App = () => {
-  const [step, setStep] = useState('input'); // 'input', 'loading', 'result'
-  const [formData, setFormData] = useState({
-    age: '',
-    gender: 'not-specified',
-    temperature: 'normal',
-    pressure: 'unknown',
-    underlying_conditions: [],
-    allergies: '',
-    symptoms: '',
-    pain_score: 5,
-    duration: '',
-    duration_unit: 'วัน'
-  });
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
-  const resultRef = useRef(null);
-
-  const apiKey = ""; // API Key will be injected at runtime
-
-  // ตัวเลือกโรคประจำตัวแบบย่อ
-  const commonConditions = [
-    "เบาหวาน", "ความดันฯสูง", "ไขมันฯสูง", "โรคหัวใจ", "หอบหืด", "โรคไต"
-  ];
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const toggleCondition = (condition) => {
-    setFormData(prev => {
-      const current = prev.underlying_conditions;
-      if (current.includes(condition)) {
-        return { ...prev, underlying_conditions: current.filter(c => c !== condition) };
-      } else {
-        return { ...prev, underlying_conditions: [...current, condition] };
-      }
-    });
-  };
-
-  const analyzeSymptoms = async () => {
-    if (!formData.symptoms || !formData.age) {
-      alert('กรุณากรอกข้อมูลสำคัญ: อายุ และ อาการหลัก');
-      return;
-    }
-
-    setStep('loading');
-    setError(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    const systemPrompt = `Role: Professional Medical Triage AI (ระบบคัดกรองผู้ป่วย)
-    Task: Analyze patient data to assess urgency and potential conditions.
-    Output: JSON format only. Strict medical terminology translation to Thai.
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediCheck - ระบบคัดกรองเบื้องต้น</title>
     
-    Data Structure:
-    {
-      "triageLevel": "Non-Urgent" | "Urgent" | "Emergency",
-      "triageColor": "green" | "yellow" | "red",
-      "clinicalSummary": "สรุปอาการแบบกระชับ",
-      "differentialDiagnosis": ["โรคที่เข้าข่าย 1", "โรคที่เข้าข่าย 2"],
-      "vitalSignAnalysis": "วิเคราะห์สัญญาณชีพ (ถ้ามีข้อมูล)",
-      "immediateAction": "สิ่งที่ต้องทำทันที",
-      "lifestyleAdvice": ["คำแนะนำดูแลตนเอง"],
-      "redFlags": ["สัญญาณอันตราย"],
-      "departmentReferral": "แผนกที่แนะนำ"
-    }`;
-
-    // แปลงค่าตัวเลือกเป็นข้อความสำหรับ AI
-    const tempMap = {
-      'normal': 'Normal (ปกติ)',
-      'warm': 'Low Grade Fever (ตัวรุมๆ)',
-      'hot': 'High Fever (ตัวร้อนจัด)'
-    };
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    const bpMap = {
-      'unknown': 'Unknown',
-      'normal': 'Normal',
-      'low': 'Hypotension (ต่ำ)',
-      'high': 'Hypertension (สูง)'
-    };
+    <!-- Google Fonts: Kanit -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-    const userQuery = `Patient Data:
-    - Age: ${formData.age}, Gender: ${formData.gender}
-    - Temp: ${tempMap[formData.temperature]}
-    - BP Status: ${bpMap[formData.pressure]}
-    - History: ${formData.underlying_conditions.join(', ')}
-    - Allergies: ${formData.allergies || 'None'}
-    - Symptoms: ${formData.symptoms}
-    - Pain Score: ${formData.pain_score}/10
-    - Duration: ${formData.duration} ${formData.duration_unit}`;
-
-    try {
-      let retries = 0;
-      const maxRetries = 3; 
-      let response;
-
-      while (retries < maxRetries) {
-        try {
-          response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: userQuery }] }],
-              systemInstruction: { parts: [{ text: systemPrompt }] },
-              generationConfig: { responseMimeType: "application/json" }
-            })
-          });
-          if (response.ok) break;
-        } catch (e) {
-          retries++;
-          await new Promise(resolve => setTimeout(resolve, 1000));
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #f1f5f9; /* slate-100 */
+            font-size: 16px; /* Base font size 16px */
+            line-height: 1.6;
         }
-      }
+        
+        /* Form elements font size fix for mobile */
+        input, select, textarea, button {
+            font-size: 16px !important;
+        }
+        
+        /* Animation Classes */
+        .fade-in-up {
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-      const data = await response.json();
-      const content = JSON.parse(data.candidates[0].content.parts[0].text);
-      setResult(content);
-      setStep('result');
-      setTimeout(() => {
-        resultRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    } catch (err) {
-      setError('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่');
-      setStep('input');
-    }
-  };
+        .spin-slow {
+            animation: spin 3s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
 
-  const resetForm = () => {
-    setStep('input');
-    setResult(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+        /* Hide scrollbar */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
 
-  return (
-    <div className="min-h-screen bg-slate-50 font-['Kanit'] text-slate-800 pb-8">
-      {/* Super Compact Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm py-2">
-        <div className="max-w-xl mx-auto px-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="bg-teal-600 p-1 rounded-md shadow-sm">
-              <Stethoscope className="h-4 w-4 text-white" />
+        /* Range Input Styling - Darker Theme */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #1e293b; /* slate-800 */
+            cursor: pointer;
+            margin-top: -8px;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #cbd5e1; /* slate-300 */
+            border-radius: 2px;
+        }
+
+        input[type=range]:focus {
+            outline: none; 
+        }
+    </style>
+</head>
+<body class="text-slate-900 pb-10 min-h-screen">
+
+    <!-- Header: Dark & Serious Tone -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-20 shadow-md py-3">
+        <div class="max-w-xl mx-auto px-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-600 p-1.5 rounded-lg shadow-sm flex items-center justify-center">
+                    <i data-lucide="activity" class="h-5 w-5 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-white leading-none">MediCheck</h1>
+                    <p class="text-xs text-slate-400 mt-0.5">ระบบคัดกรองสุขภาพเบื้องต้น</p>
+                </div>
             </div>
-            <h1 className="text-base font-bold text-slate-900">MediCheck<span className="text-teal-600">Lite</span></h1>
-          </div>
-          <div className="text-[10px] text-slate-400 font-medium">Rapid Triage</div>
+            <div class="text-xs text-slate-400 font-medium border border-slate-700 px-2 py-1 rounded">
+                AI Health
+            </div>
         </div>
-      </header>
+    </header>
 
-      <main className="max-w-xl mx-auto px-3 mt-4">
-        {step === 'input' && (
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="bg-slate-50 px-4 py-2 border-b border-slate-100">
-                <h2 className="text-sm font-bold text-slate-700 flex items-center">
-                  <FileText className="w-3.5 h-3.5 text-teal-600 mr-2" />
-                  ประเมินอาการด่วน
-                </h2>
-              </div>
-              
-              <div className="p-4 space-y-4">
-                {/* 1. Basic Info & Vitals (Grid) */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-500 mb-1 block">อายุ (ปี) *</label>
-                    <input 
-                      type="number" 
-                      inputMode="numeric"
-                      name="age"
-                      value={formData.age}
-                      onChange={handleInputChange}
-                      className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:border-teal-500 outline-none text-sm transition-all"
-                      placeholder="ระบุ"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-500 mb-1 block">เพศ</label>
-                    <select 
-                      name="gender"
-                      value={formData.gender}
-                      onChange={handleInputChange}
-                      className="w-full h-9 px-2 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:border-teal-500 outline-none text-sm"
-                    >
-                      <option value="not-specified">-</option>
-                      <option value="male">ชาย</option>
-                      <option value="female">หญิง</option>
-                    </select>
-                  </div>
-                  
-                  {/* Temperature Select */}
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-500 mb-1 block">อุณหภูมิร่างกาย</label>
-                    <div className="relative">
-                      <select 
-                        name="temperature"
-                        value={formData.temperature}
-                        onChange={handleInputChange}
-                        className="w-full h-9 pl-7 pr-2 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:border-teal-500 outline-none text-sm appearance-none"
-                      >
-                        <option value="normal">ปกติ</option>
-                        <option value="warm">ตัวรุมๆ</option>
-                        <option value="hot">ตัวร้อนจัด</option>
-                      </select>
-                      <Thermometer className="absolute left-2 top-2.5 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-                      <ChevronDown className="absolute right-2 top-3 w-3 h-3 text-slate-400 pointer-events-none" />
-                    </div>
-                  </div>
-
-                  {/* BP Select */}
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-500 mb-1 block">ความดันโลหิต</label>
-                    <div className="relative">
-                      <select 
-                        name="pressure"
-                        value={formData.pressure}
-                        onChange={handleInputChange}
-                        className="w-full h-9 pl-7 pr-2 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:border-teal-500 outline-none text-sm appearance-none"
-                      >
-                        <option value="unknown">ไม่ทราบ</option>
-                        <option value="normal">ปกติ</option>
-                        <option value="low">ต่ำ</option>
-                        <option value="high">สูง</option>
-                      </select>
-                      <Activity className="absolute left-2 top-2.5 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-                      <ChevronDown className="absolute right-2 top-3 w-3 h-3 text-slate-400 pointer-events-none" />
-                    </div>
-                  </div>
+    <main class="max-w-xl mx-auto px-4 mt-6">
+        
+        <!-- STEP 1: INPUT FORM -->
+        <div id="step-input" class="fade-in-up">
+            <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+                <div class="bg-slate-100 px-5 py-3 border-b border-slate-200">
+                    <h2 class="text-base font-bold text-slate-800 flex items-center">
+                        <i data-lucide="clipboard-list" class="w-5 h-5 text-blue-800 mr-2"></i>
+                        แบบฟอร์มประเมินอาการ
+                    </h2>
                 </div>
-
-                {/* 2. Conditions (Chips) */}
-                <div>
-                   <label className="text-[11px] font-semibold text-slate-500 mb-2 block">โรคประจำตัว</label>
-                   <div className="flex flex-wrap gap-1.5 mb-2">
-                      {commonConditions.map((cond) => (
-                        <button
-                          key={cond}
-                          onClick={() => toggleCondition(cond)}
-                          className={`text-[10px] py-1 px-2.5 rounded-md border transition-all ${
-                            formData.underlying_conditions.includes(cond)
-                              ? 'bg-teal-600 border-teal-600 text-white'
-                              : 'bg-white border-slate-200 text-slate-600'
-                          }`}
-                        >
-                          {cond}
-                        </button>
-                      ))}
-                    </div>
-                    <input 
-                      type="text"
-                      name="allergies"
-                      value={formData.allergies}
-                      onChange={handleInputChange}
-                      placeholder="แพ้ยา/แพ้อาหาร (ระบุถ้ามี)"
-                      className="w-full h-8 px-3 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:border-teal-500 text-xs outline-none"
-                    />
-                </div>
-
-                <hr className="border-slate-100" />
-
-                {/* 3. Symptoms (Main) */}
-                <div>
-                  <label className="text-[11px] font-semibold text-slate-500 mb-1.5 block">อาการที่เป็น *</label>
-                  <textarea 
-                    name="symptoms"
-                    value={formData.symptoms}
-                    onChange={handleInputChange}
-                    rows="3"
-                    placeholder="เช่น ปวดท้องขวาล่าง, ไอแห้ง, อ่อนเพลีย..."
-                    className="w-full p-3 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:ring-1 focus:ring-teal-500 outline-none resize-none text-sm leading-relaxed"
-                  ></textarea>
-
-                  <div className="flex items-center gap-3 mt-3">
-                    <div className="w-1/2">
-                      <label className="text-[10px] text-slate-500 mb-1 block">ระยะเวลา</label>
-                      <div className="flex">
-                        <input 
-                          type="number"
-                          inputMode="numeric"
-                          name="duration"
-                          value={formData.duration}
-                          onChange={handleInputChange}
-                          className="w-full h-8 px-2 rounded-l-lg border border-r-0 border-slate-200 bg-slate-50 text-sm focus:bg-white outline-none"
-                          placeholder="ระบุ"
-                        />
-                        <select
-                          name="duration_unit"
-                          value={formData.duration_unit}
-                          onChange={handleInputChange}
-                          className="h-8 px-1 rounded-r-lg border border-slate-200 bg-slate-100 text-xs outline-none"
-                        >
-                          <option value="วัน">วัน</option>
-                          <option value="ชม.">ชม.</option>
-                          <option value="wk">wk</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="w-1/2">
-                      <label className="text-[10px] text-slate-500 mb-1 block flex justify-between">
-                        <span>ความปวด</span>
-                        <span className="font-bold text-teal-600">{formData.pain_score}</span>
-                      </label>
-                      <input 
-                        type="range" 
-                        min="0" max="10" step="1"
-                        name="pain_score"
-                        value={formData.pain_score}
-                        onChange={handleInputChange}
-                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <button 
-                  onClick={analyzeSymptoms}
-                  className="w-full mt-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 rounded-xl shadow-md transition-all active:scale-[0.98] flex items-center justify-center space-x-2 text-sm"
-                >
-                  <span>วิเคราะห์ผลทันที</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {step === 'loading' && (
-          <div className="h-[300px] flex flex-col items-center justify-center text-center animate-in fade-in">
-            <div className="relative mb-4">
-              <div className="w-12 h-12 border-4 border-slate-100 border-t-teal-600 rounded-full animate-spin"></div>
-              <HeartPulse className="absolute inset-0 m-auto w-5 h-5 text-teal-600 animate-pulse" />
-            </div>
-            <p className="text-sm font-medium text-slate-600">กำลังวิเคราะห์ข้อมูล...</p>
-          </div>
-        )}
-
-        {step === 'result' && result && (
-          <div ref={resultRef} className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
-            <div className={`rounded-xl shadow-sm border overflow-hidden mb-4 ${
-              result.triageColor === 'red' ? 'bg-red-50 border-red-200' :
-              result.triageColor === 'yellow' ? 'bg-amber-50 border-amber-200' :
-              'bg-teal-50 border-teal-200'
-            }`}>
-              <div className="p-4 flex items-center justify-between">
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-wider opacity-70">ระดับความรุนแรง</div>
-                  <div className={`text-xl font-bold flex items-center ${
-                    result.triageColor === 'red' ? 'text-red-700' :
-                    result.triageColor === 'yellow' ? 'text-amber-700' :
-                    'text-teal-800'
-                  }`}>
-                    {result.triageColor === 'red' ? <AlertTriangle className="mr-2 w-5 h-5" /> : 
-                     result.triageColor === 'yellow' ? <AlertCircle className="mr-2 w-5 h-5" /> : 
-                     <CheckCircle2 className="mr-2 w-5 h-5" />}
-                    {result.triageLevel}
-                  </div>
-                </div>
-                {result.triageColor === 'red' && (
-                  <div className="bg-red-600 text-white text-[10px] px-2 py-1 rounded font-bold">พบแพทย์ทันที</div>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-                <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 mb-3 flex items-center">
-                  <FileText className="w-4 h-4 mr-2 text-slate-400" /> สรุปผล
-                </h3>
-                <p className="text-sm text-slate-700 leading-relaxed mb-3">
-                  {result.clinicalSummary}
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {result.differentialDiagnosis.map((dx, i) => (
-                    <span key={i} className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium border border-blue-100">
-                      {dx}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-                <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 mb-3 flex items-center">
-                  <ClipboardList className="w-4 h-4 mr-2 text-slate-400" /> คำแนะนำ
-                </h3>
                 
-                <div className="mb-3">
-                  <div className="text-xs font-bold text-teal-700 mb-1">สิ่งที่ควรทำ</div>
-                  <p className="text-sm text-slate-700 bg-teal-50 p-2 rounded border border-teal-100">{result.immediateAction}</p>
-                </div>
+                <div class="p-5 space-y-5">
+                    <!-- Basic Info -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm font-bold text-slate-700 mb-1.5 block">อายุ (ปี)</label>
+                            <input type="number" id="age" class="w-full h-11 px-3 rounded-lg border border-slate-300 bg-white focus:bg-white focus:border-blue-800 focus:ring-1 focus:ring-blue-800 outline-none transition-all placeholder-slate-400" placeholder="ระบุตัวเลข">
+                        </div>
+                        <div>
+                            <label class="text-sm font-bold text-slate-700 mb-1.5 block">เพศ</label>
+                            <select id="gender" class="w-full h-11 px-3 rounded-lg border border-slate-300 bg-white focus:border-blue-800 focus:ring-1 focus:ring-blue-800 outline-none">
+                                <option value="not-specified">ไม่ระบุ</option>
+                                <option value="male">ชาย</option>
+                                <option value="female">หญิง</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Temperature -->
+                        <div>
+                            <label class="text-sm font-bold text-slate-700 mb-1.5 block">อุณหภูมิร่างกาย</label>
+                            <div class="relative">
+                                <select id="temperature" class="w-full h-11 pl-3 pr-8 rounded-lg border border-slate-300 bg-white focus:border-blue-800 focus:ring-1 focus:ring-blue-800 outline-none appearance-none">
+                                    <option value="normal">ปกติ</option>
+                                    <option value="warm">ตัวรุมๆ (มีไข้ต่ำ)</option>
+                                    <option value="hot">ตัวร้อนจัด (ไข้สูง)</option>
+                                </select>
+                                <i data-lucide="chevron-down" class="absolute right-3 top-3.5 w-4 h-4 text-slate-500 pointer-events-none"></i>
+                            </div>
+                        </div>
 
-                <ul className="space-y-1.5 mb-3">
-                  {result.lifestyleAdvice.map((advice, i) => (
-                    <li key={i} className="text-sm text-slate-600 flex items-start">
-                      <span className="mr-2 text-teal-500">•</span> {advice}
-                    </li>
-                  ))}
-                </ul>
-
-                {result.redFlags?.length > 0 && (
-                  <div className="bg-red-50 p-3 rounded-lg border border-red-100">
-                    <div className="text-xs font-bold text-red-700 mb-1 flex items-center">
-                      <AlertTriangle className="w-3 h-3 mr-1" /> สัญญาณอันตราย
+                        <!-- BP -->
+                        <div>
+                            <label class="text-sm font-bold text-slate-700 mb-1.5 block">ความดันโลหิต</label>
+                            <div class="relative">
+                                <select id="pressure" class="w-full h-11 pl-3 pr-8 rounded-lg border border-slate-300 bg-white focus:border-blue-800 focus:ring-1 focus:ring-blue-800 outline-none appearance-none">
+                                    <option value="unknown">ไม่ทราบ</option>
+                                    <option value="normal">ปกติ</option>
+                                    <option value="low">ต่ำ</option>
+                                    <option value="high">สูง</option>
+                                </select>
+                                <i data-lucide="chevron-down" class="absolute right-3 top-3.5 w-4 h-4 text-slate-500 pointer-events-none"></i>
+                            </div>
+                        </div>
                     </div>
-                    <ul className="space-y-1">
-                      {result.redFlags.map((flag, i) => (
-                        <li key={i} className="text-xs text-red-800 flex items-start">
-                          <span className="mr-1.5 text-red-500">!</span> {flag}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
 
-              <div className="bg-slate-800 text-white rounded-xl p-4 flex justify-between items-center">
-                <div>
-                  <div className="text-[10px] text-slate-400 uppercase">แผนกที่แนะนำ</div>
-                  <div className="font-bold text-teal-400">{result.departmentReferral}</div>
+                    <!-- Conditions -->
+                    <div>
+                        <label class="text-sm font-bold text-slate-700 mb-2 block">โรคประจำตัว (เลือกได้มากกว่า 1)</label>
+                        <div class="flex flex-wrap gap-2 mb-3" id="conditions-container">
+                            <!-- JS will inject buttons here -->
+                        </div>
+                        <input type="text" id="allergies" placeholder="ประวัติแพ้ยา / แพ้อาหาร (ถ้ามี)" class="w-full h-11 px-3 rounded-lg border border-slate-300 bg-white focus:border-blue-800 focus:ring-1 focus:ring-blue-800 outline-none placeholder-slate-400">
+                    </div>
+
+                    <div class="border-t border-slate-200 my-2"></div>
+
+                    <!-- Symptoms -->
+                    <div>
+                        <label class="text-sm font-bold text-slate-700 mb-2 block">เล่าอาการที่เป็น</label>
+                        <textarea id="symptoms" rows="3" placeholder="เช่น ปวดท้องขวาล่างมาก, ไอแห้งๆ, อ่อนเพลีย ไม่มีแรง..." class="w-full p-3 rounded-lg border border-slate-300 bg-white focus:border-blue-800 focus:ring-1 focus:ring-blue-800 outline-none resize-none leading-relaxed"></textarea>
+
+                        <div class="flex flex-col sm:flex-row gap-4 mt-4">
+                            <div class="flex-1">
+                                <label class="text-sm font-bold text-slate-700 mb-1.5 block">เป็นมานานเท่าไร</label>
+                                <div class="flex">
+                                    <input type="number" id="duration" class="w-full h-11 px-3 rounded-l-lg border border-r-0 border-slate-300 bg-white focus:border-blue-800 focus:ring-1 focus:ring-blue-800 outline-none z-10" placeholder="ระบุตัวเลข">
+                                    <select id="duration_unit" class="h-11 px-2 rounded-r-lg border border-slate-300 bg-slate-100 text-slate-700 outline-none border-l-0">
+                                        <option value="วัน">วัน</option>
+                                        <option value="ชั่วโมง">ชั่วโมง</option>
+                                        <option value="สัปดาห์">สัปดาห์</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="flex-1">
+                                <label class="text-sm font-bold text-slate-700 mb-1.5 block flex justify-between items-center">
+                                    <span>ระดับความเจ็บปวด (1-10)</span>
+                                    <span id="pain-score-display" class="font-bold text-blue-800 text-lg bg-blue-100 px-2 rounded">5</span>
+                                </label>
+                                <div class="h-11 flex items-center px-2 border border-slate-300 rounded-lg bg-slate-50">
+                                    <input type="range" id="pain_score" min="0" max="10" step="1" value="5" class="w-full">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="analyzeSymptoms()" class="w-full mt-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-lg py-3.5 rounded-xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center space-x-2">
+                        <span>เริ่มประเมินผล</span>
+                        <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                    </button>
+                    
+                    <p class="text-center text-xs text-slate-500 mt-2">
+                        * ข้อมูลนี้ใช้เพื่อแนะนำเบื้องต้นเท่านั้น ไม่สามารถใช้แทนการวินิจฉัยของแพทย์ได้
+                    </p>
                 </div>
-                <button 
-                  onClick={resetForm}
-                  className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-lg transition-colors"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                </button>
-              </div>
             </div>
-          </div>
-        )}
+        </div>
 
-        {error && (
-          <div className="fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-800 px-4 py-3 rounded-lg shadow-lg z-50 text-xs font-medium">
-             {error}
-             <button onClick={() => setError(null)} className="ml-2 font-bold">✕</button>
-          </div>
-        )}
-      </main>
-    </div>
-  );
-};
+        <!-- STEP 2: LOADING -->
+        <div id="step-loading" class="hidden h-[400px] flex flex-col items-center justify-center text-center fade-in-up bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div class="relative mb-6">
+                <div class="w-16 h-16 border-[6px] border-slate-100 border-t-blue-800 rounded-full spin-slow"></div>
+                <div class="absolute inset-0 m-auto flex items-center justify-center">
+                    <i data-lucide="loader-2" class="w-6 h-6 text-blue-800 animate-pulse"></i>
+                </div>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800">กำลังประมวลผลข้อมูล...</h3>
+            <p class="text-base text-slate-500 mt-2">ระบบ AI กำลังวิเคราะห์ความเสี่ยงและอาการของคุณ</p>
+        </div>
 
-export default App;
+        <!-- STEP 3: RESULT -->
+        <div id="step-result" class="hidden fade-in-up">
+            <!-- Content will be injected by JS -->
+            <div id="result-container"></div>
+            
+            <div class="mt-5 bg-slate-900 text-white rounded-xl p-5 shadow-lg">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">คำแนะนำเพิ่มเติม</div>
+                        <div class="text-sm opacity-90 mb-2">ควรไปพบแพทย์ที่แผนก:</div>
+                        <div id="referral-dept" class="text-2xl font-bold text-blue-300">-</div>
+                    </div>
+                    <div class="bg-white/10 p-3 rounded-lg">
+                        <i data-lucide="hospital" class="w-8 h-8 text-white"></i>
+                    </div>
+                </div>
+                
+                <button onclick="resetForm()" class="w-full mt-6 bg-white text-slate-900 font-bold py-3.5 rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center space-x-2">
+                    <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                    <span>ประเมินอาการใหม่</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Error Notification -->
+        <div id="error-toast" class="hidden fixed bottom-6 right-6 bg-red-100 border-l-4 border-red-600 text-red-900 px-5 py-4 rounded shadow-xl z-50 text-sm font-medium flex items-center">
+            <i data-lucide="alert-circle" class="w-5 h-5 mr-3 text-red-600"></i>
+            <span id="error-message">Error</span>
+            <button onclick="document.getElementById('error-toast').classList.add('hidden')" class="ml-4 font-bold text-red-500 hover:text-red-800">✕</button>
+        </div>
+
+    </main>
+
+    <script>
+        // --- State Management ---
+        const apiKey = ""; // API Key will be injected at runtime
+        
+        let formData = {
+            age: '',
+            gender: 'not-specified',
+            temperature: 'normal',
+            pressure: 'unknown',
+            underlying_conditions: [],
+            allergies: '',
+            symptoms: '',
+            pain_score: 5,
+            duration: '',
+            duration_unit: 'วัน'
+        };
+
+        const commonConditions = [
+            "เบาหวาน", "ความดันสูง", "ไขมันสูง", "โรคหัวใจ", "หอบหืด", "โรคไต"
+        ];
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            renderConditions();
+            setupEventListeners();
+        });
+
+        // --- UI Rendering ---
+        function renderConditions() {
+            const container = document.getElementById('conditions-container');
+            container.innerHTML = commonConditions.map(cond => {
+                const isSelected = formData.underlying_conditions.includes(cond);
+                const baseClass = "text-sm py-2 px-3 rounded-lg border transition-all cursor-pointer select-none font-medium";
+                // Darker active state for serious tone
+                const activeClass = "bg-slate-700 border-slate-700 text-white shadow-sm"; 
+                const inactiveClass = "bg-white border-slate-300 text-slate-600 hover:bg-slate-50";
+                
+                return `<button onclick="toggleCondition('${cond}')" class="${baseClass} ${isSelected ? activeClass : inactiveClass}">${cond}</button>`;
+            }).join('');
+        }
+
+        function setupEventListeners() {
+            // Inputs mapping
+            const inputs = ['age', 'gender', 'temperature', 'pressure', 'allergies', 'symptoms', 'duration', 'duration_unit', 'pain_score'];
+            
+            inputs.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', (e) => {
+                        formData[id] = e.target.value;
+                        if (id === 'pain_score') {
+                            document.getElementById('pain-score-display').textContent = e.target.value;
+                        }
+                    });
+                }
+            });
+        }
+
+        // --- Logic ---
+        function toggleCondition(condition) {
+            if (formData.underlying_conditions.includes(condition)) {
+                formData.underlying_conditions = formData.underlying_conditions.filter(c => c !== condition);
+            } else {
+                formData.underlying_conditions.push(condition);
+            }
+            renderConditions(); // Re-render to update styling
+        }
+
+        async function analyzeSymptoms() {
+            // Validation
+            if (!formData.symptoms || !formData.age) {
+                alert('กรุณากรอกข้อมูลสำคัญ: อายุ และ อาการที่เป็น');
+                return;
+            }
+
+            // Set UI to Loading
+            setStep('loading');
+
+            // SYSTEM PROMPT: Adjusted for simple Thai, serious tone
+            const systemPrompt = `บทบาท: คุณคือ AI ทางการแพทย์ที่ทำหน้าที่คัดกรองผู้ป่วยเบื้องต้น (Medical Triage)
+            
+            คำสั่ง: วิเคราะห์ข้อมูลผู้ป่วยที่ได้รับ และประเมินความเร่งด่วน รวมถึงให้คำแนะนำ
+            
+            ข้อกำหนดการตอบกลับ:
+            1. ตอบเป็น JSON เท่านั้น
+            2. ใช้ภาษาไทยที่ "เข้าใจง่าย" "สุภาพ" และ "จริงจัง"
+            3. หลีกเลี่ยงศัพท์เทคนิคภาษาอังกฤษ หรือศัพท์แพทย์ยากๆ (ถ้าต้องใช้ให้ทับศัพท์หรืออธิบายไทย)
+            4. โทนเสียง: เป็นผู้เชี่ยวชาญ น่าเชื่อถือ ห่วงใยแต่ไม่เล่นหัว
+            
+            โครงสร้าง JSON ที่ต้องการ:
+            {
+              "triageLevel": "ไม่เร่งด่วน" | "เร่งด่วน" | "ฉุกเฉิน",
+              "triageColor": "green" | "yellow" | "red",
+              "clinicalSummary": "สรุปอาการแบบสั้นๆ เข้าใจง่าย",
+              "differentialDiagnosis": ["โรคที่อาจเป็นไปได้ 1", "โรคที่อาจเป็นไปได้ 2"],
+              "vitalSignAnalysis": "วิเคราะห์ไข้และความดัน (ถ้ามี)",
+              "immediateAction": "สิ่งที่ต้องทำตอนนี้ทันที",
+              "lifestyleAdvice": ["คำแนะนำการดูแลตัวเอง 1", "คำแนะนำ 2"],
+              "redFlags": ["อาการอันตรายที่ต้องสังเกต (ถ้ามีรีบไปรพ.)"],
+              "departmentReferral": "แผนกแพทย์ที่ควรไปพบ"
+            }`;
+
+            const tempMap = {
+                'normal': 'ปกติ',
+                'warm': 'ตัวรุมๆ (ไข้ต่ำ)',
+                'hot': 'ตัวร้อนจัด (ไข้สูง)'
+            };
+            
+            const bpMap = {
+                'unknown': 'ไม่ทราบ',
+                'normal': 'ปกติ',
+                'low': 'ต่ำ',
+                'high': 'สูง'
+            };
+
+            const userQuery = `ข้อมูลผู้ป่วย:
+            - อายุ: ${formData.age}, เพศ: ${formData.gender}
+            - อุณหภูมิ: ${tempMap[formData.temperature]}
+            - ความดัน: ${bpMap[formData.pressure]}
+            - โรคประจำตัว: ${formData.underlying_conditions.join(', ')}
+            - แพ้ยา/อาหาร: ${formData.allergies || 'ไม่มี'}
+            - อาการ: ${formData.symptoms}
+            - ระดับความเจ็บ (1-10): ${formData.pain_score}
+            - เป็นมานาน: ${formData.duration} ${formData.duration_unit}`;
+
+            try {
+                let retries = 0;
+                const maxRetries = 3;
+                let response;
+                let data;
+
+                while (retries < maxRetries) {
+                    try {
+                        response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{ parts: [{ text: userQuery }] }],
+                                systemInstruction: { parts: [{ text: systemPrompt }] },
+                                generationConfig: { responseMimeType: "application/json" }
+                            })
+                        });
+                        if (response.ok) break;
+                    } catch (e) {
+                        retries++;
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                }
+
+                if (!response || !response.ok) throw new Error('การเชื่อมต่อล้มเหลว');
+
+                data = await response.json();
+                const content = JSON.parse(data.candidates[0].content.parts[0].text);
+                
+                renderResult(content);
+                setStep('result');
+
+            } catch (err) {
+                console.error(err);
+                showError('ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้ง');
+                setStep('input');
+            }
+        }
+
+        function renderResult(result) {
+            const container = document.getElementById('result-container');
+            const dept = document.getElementById('referral-dept');
+
+            // Set Colors for Serious Tone (Muted but clear)
+            let headerBg = "bg-teal-700";
+            let iconName = "check-circle";
+            let statusText = "อาการทั่วไป (ไม่เร่งด่วน)";
+            
+            if (result.triageColor === 'red') {
+                headerBg = "bg-red-800"; // Dark Red
+                iconName = "alert-triangle";
+                statusText = "ฉุกเฉิน / อันตราย";
+            } else if (result.triageColor === 'yellow') {
+                headerBg = "bg-amber-600"; // Dark Amber
+                iconName = "alert-circle";
+                statusText = "ควรพบแพทย์ (เร่งด่วน)";
+            }
+
+            const diagnosisTags = result.differentialDiagnosis.map(dx => 
+                `<span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-sm font-medium border border-slate-300">${dx}</span>`
+            ).join('');
+
+            const lifestyleList = result.lifestyleAdvice.map(item => 
+                `<li class="text-base text-slate-700 flex items-start mb-2"><span class="mr-2 text-blue-800 font-bold">•</span> ${item}</li>`
+            ).join('');
+
+            let redFlagsHTML = '';
+            if (result.redFlags && result.redFlags.length > 0) {
+                const redFlagItems = result.redFlags.map(flag => 
+                    `<li class="text-sm text-red-900 flex items-start mb-1"><span class="mr-2 text-red-600 font-bold">!</span> ${flag}</li>`
+                ).join('');
+                redFlagsHTML = `
+                <div class="bg-red-50 p-4 rounded-lg border border-red-200 mt-4">
+                    <div class="text-sm font-bold text-red-800 mb-2 flex items-center">
+                        <i data-lucide="siren" class="w-4 h-4 mr-2"></i> สัญญาณอันตราย (หากมีต้องรีบไปโรงพยาบาล)
+                    </div>
+                    <ul class="list-none">${redFlagItems}</ul>
+                </div>`;
+            }
+
+            container.innerHTML = `
+                <div class="rounded-xl shadow-lg overflow-hidden mb-6">
+                    <div class="${headerBg} p-5 text-white flex items-center justify-between">
+                        <div>
+                            <div class="text-xs font-medium opacity-80 uppercase tracking-wider mb-1">ผลการประเมิน</div>
+                            <div class="text-2xl font-bold flex items-center">
+                                <i data-lucide="${iconName}" class="mr-3 w-6 h-6"></i>
+                                ${statusText}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-5 border border-slate-200 border-t-0 rounded-b-xl">
+                        <h3 class="text-lg font-bold text-slate-800 mb-3 flex items-center border-b border-slate-100 pb-2">
+                            <i data-lucide="stethoscope" class="w-5 h-5 mr-2 text-slate-500"></i>
+                            สรุปอาการ
+                        </h3>
+                        <p class="text-base text-slate-700 leading-relaxed mb-4">${result.clinicalSummary}</p>
+                        
+                        <div class="mb-2">
+                            <span class="text-sm text-slate-500 block mb-2 font-medium">โรคที่อาจเป็นไปได้:</span>
+                            <div class="flex flex-wrap gap-2">${diagnosisTags}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-md border border-slate-200 p-5">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center border-b border-slate-100 pb-3">
+                        <i data-lucide="clipboard-check" class="w-5 h-5 mr-2 text-slate-500"></i>
+                        คำแนะนำการดูแล
+                    </h3>
+                    
+                    <div class="mb-5">
+                        <div class="text-sm font-bold text-blue-900 bg-blue-50 p-3 rounded-lg border-l-4 border-blue-800 mb-3">
+                            สิ่งที่ควรทำทันที: ${result.immediateAction}
+                        </div>
+                        <ul class="list-none">${lifestyleList}</ul>
+                    </div>
+
+                    ${redFlagsHTML}
+                </div>
+            `;
+            
+            dept.textContent = result.departmentReferral;
+            lucide.createIcons(); // Refresh icons for injected HTML
+        }
+
+        function setStep(stepName) {
+            const steps = ['input', 'loading', 'result'];
+            steps.forEach(s => {
+                const el = document.getElementById(`step-${s}`);
+                if (s === stepName) {
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetForm() {
+            setStep('input');
+            document.getElementById('result-container').innerHTML = '';
+            document.getElementById('referral-dept').textContent = '-';
+        }
+
+        function showError(msg) {
+            const toast = document.getElementById('error-toast');
+            document.getElementById('error-message').textContent = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

@@ -235,22 +235,25 @@
             <!-- Content will be injected by JS -->
             <div id="result-container"></div>
             
-            <div class="mt-5 bg-slate-900 text-white rounded-xl p-5 shadow-lg">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">คำแนะนำการส่งต่อ</div>
-                        <div class="text-sm opacity-90 mb-2">แผนกแพทย์ที่แนะนำ:</div>
-                        <div id="referral-dept" class="text-2xl font-bold text-blue-300">-</div>
-                    </div>
-                    <div class="bg-white/10 p-3 rounded-lg">
-                        <i data-lucide="hospital" class="w-8 h-8 text-white"></i>
-                    </div>
+            <div class="mt-6 bg-slate-900 text-white rounded-xl p-6 shadow-xl relative overflow-hidden">
+                <div class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+                    <i data-lucide="hospital" class="w-48 h-48 text-white"></i>
                 </div>
                 
-                <button onclick="resetForm()" class="w-full mt-6 bg-white text-slate-900 font-bold py-3.5 rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center space-x-2">
-                    <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
-                    <span>ประเมินอาการใหม่</span>
-                </button>
+                <div class="relative z-10">
+                    <div class="flex items-start justify-between mb-6">
+                        <div>
+                            <div class="text-xs text-slate-400 uppercase tracking-widest font-semibold mb-2">คำแนะนำการส่งต่อ</div>
+                            <div class="text-sm opacity-90 mb-1">แผนกแพทย์ที่แนะนำ:</div>
+                            <div id="referral-dept" class="text-3xl font-bold text-blue-300 tracking-tight">-</div>
+                        </div>
+                    </div>
+                    
+                    <button onclick="resetForm()" class="w-full bg-white text-slate-900 font-bold py-4 rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center space-x-2 shadow-lg">
+                        <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                        <span>ประเมินอาการใหม่</span>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -332,6 +335,27 @@
             renderConditions(); // Re-render to update styling
         }
 
+        // Robust JSON Parsing function to handle extra text
+        function parseAIResponse(text) {
+            // 1. Remove Markdown code blocks first
+            let cleanText = text.replace(/```json\n?|\n?```/g, '').trim();
+            
+            // 2. Try simple parse first
+            try {
+                return JSON.parse(cleanText);
+            } catch (e) {
+                // 3. If failed, try finding the JSON object bounds
+                const firstBrace = cleanText.indexOf('{');
+                const lastBrace = cleanText.lastIndexOf('}');
+                
+                if (firstBrace !== -1 && lastBrace !== -1) {
+                    const jsonString = cleanText.substring(firstBrace, lastBrace + 1);
+                    return JSON.parse(jsonString);
+                }
+                throw e; // Rethrow if no JSON found
+            }
+        }
+
         async function analyzeSymptoms() {
             // Validation
             if (!formData.symptoms || !formData.age) {
@@ -342,7 +366,7 @@
             // Set UI to Loading
             setStep('loading');
 
-            // SYSTEM PROMPT: Adjusted for simple Thai, serious tone
+            // SYSTEM PROMPT
             const systemPrompt = `บทบาท: คุณคือ AI ทางการแพทย์ที่ทำหน้าที่คัดกรองผู้ป่วยเบื้องต้น (Medical Triage)
             
             คำสั่ง: วิเคราะห์ข้อมูลผู้ป่วยที่ได้รับ และประเมินความเร่งด่วน รวมถึงให้คำแนะนำการรักษา
@@ -390,7 +414,6 @@
             - ระดับความเจ็บ (1-10): ${formData.pain_score}
             - เป็นมานาน: ${formData.duration} ${formData.duration_unit}`;
 
-            // Combine prompts for the worker
             const fullPrompt = `${systemPrompt}\n\n${userQuery}`;
 
             try {
@@ -401,27 +424,47 @@
                     body: JSON.stringify({ text: fullPrompt })
                 });
 
-                if (!response.ok) throw new Error('การเชื่อมต่อล้มเหลว');
+                if (!response.ok) throw new Error('การเชื่อมต่อล้มเหลว (Connection Error)');
 
                 const data = await response.json();
                 
-                // Processing response from worker
+                // --- Robust Processing Start ---
                 let content;
-                if (data.reply) {
-                    // Clean up potential markdown code blocks
-                    const cleanJson = data.reply.replace(/```json\n?|\n?```/g, '').trim();
-                    content = JSON.parse(cleanJson);
-                } else {
-                    console.error("Unexpected response format:", data);
-                    throw new Error('รูปแบบข้อมูลตอบกลับไม่ถูกต้อง');
+                
+                // 1. Get the Raw string (handle both direct string and { reply: ... })
+                const rawResponse = data.reply || (typeof data === 'string' ? data : '');
+
+                if (!rawResponse) {
+                     console.error("Invalid Response Format:", data);
+                     throw new Error('รูปแบบข้อมูลตอบกลับไม่ถูกต้อง (Invalid Format)');
                 }
+
+                // 2. Parse JSON safely
+                try {
+                    content = parseAIResponse(rawResponse);
+                } catch (e) {
+                    console.error("JSON Parsing Failed:", e, rawResponse);
+                    throw new Error('ระบบไม่สามารถแปลผลลัพธ์ได้ (JSON Error)');
+                }
+
+                // 3. Schema Validation & Defaults (Prevent undefined errors)
+                // Ensure Arrays are arrays
+                content.differentialDiagnosis = Array.isArray(content.differentialDiagnosis) ? content.differentialDiagnosis : [];
+                content.lifestyleAdvice = Array.isArray(content.lifestyleAdvice) ? content.lifestyleAdvice : [];
+                content.medicationAdvice = Array.isArray(content.medicationAdvice) ? content.medicationAdvice : [];
+                content.redFlags = Array.isArray(content.redFlags) ? content.redFlags : [];
+                
+                // Ensure essential strings exist
+                content.clinicalSummary = content.clinicalSummary || "ไม่สามารถสรุปข้อมูลได้";
+                content.departmentReferral = content.departmentReferral || "-";
+                // --- Robust Processing End ---
                 
                 renderResult(content);
                 setStep('result');
 
             } catch (err) {
                 console.error(err);
-                showError('ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้ง');
+                showError(err.message || 'ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้ง');
                 setStep('input');
             }
         }
@@ -430,112 +473,140 @@
             const container = document.getElementById('result-container');
             const dept = document.getElementById('referral-dept');
 
-            // Set Colors for Serious Tone (Muted but clear)
-            let headerBg = "bg-teal-700";
+            // --- Logic for Colors & Icons ---
+            let themeColor = "teal";
             let iconName = "check-circle";
             let statusText = "อาการทั่วไป (ไม่เร่งด่วน)";
+            let badgeBg = "bg-teal-100 text-teal-800 border-teal-200";
+            let borderColor = "border-teal-500";
             
             if (result.triageColor === 'red') {
-                headerBg = "bg-red-800"; // Dark Red
-                iconName = "alert-triangle";
+                themeColor = "red";
+                iconName = "alert-octagon";
                 statusText = "ฉุกเฉิน / อันตราย";
+                badgeBg = "bg-red-100 text-red-800 border-red-200";
+                borderColor = "border-red-500";
             } else if (result.triageColor === 'yellow') {
-                headerBg = "bg-amber-600"; // Dark Amber
-                iconName = "alert-circle";
+                themeColor = "amber";
+                iconName = "alert-triangle";
                 statusText = "ควรพบแพทย์ (เร่งด่วน)";
+                badgeBg = "bg-amber-100 text-amber-800 border-amber-200";
+                borderColor = "border-amber-500";
             }
 
+            // --- HTML Construction ---
+            
+            // 1. Tags
             const diagnosisTags = result.differentialDiagnosis.map(dx => 
-                `<span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-sm font-medium border border-slate-300">${dx}</span>`
+                `<span class="px-3 py-1 bg-slate-50 text-slate-700 rounded-md text-sm font-medium border border-slate-200 shadow-sm">${dx}</span>`
             ).join('');
 
+            // 2. Lists
             const lifestyleList = result.lifestyleAdvice.map(item => 
-                `<li class="text-base text-slate-700 flex items-start mb-2"><span class="mr-2 text-blue-800 font-bold">•</span> ${item}</li>`
+                `<li class="flex items-start text-sm text-slate-700 mb-2">
+                    <i data-lucide="check" class="w-4 h-4 text-${themeColor}-600 mr-2 mt-0.5 flex-shrink-0"></i>
+                    <span>${item}</span>
+                </li>`
             ).join('');
 
-            // Medication List
-            let medicationHTML = '';
-            if (result.medicationAdvice && result.medicationAdvice.length > 0) {
-                const medItems = result.medicationAdvice.map(item => 
-                    `<li class="text-base text-slate-700 flex items-start mb-2"><span class="mr-2 text-green-600 font-bold">•</span> ${item}</li>`
-                ).join('');
-                medicationHTML = `
-                <div class="mb-5">
-                     <div class="text-sm font-bold text-slate-800 mb-2 flex items-center">
-                        <i data-lucide="pill" class="w-4 h-4 mr-2 text-green-600"></i>
-                        ยาบรรเทาอาการเบื้องต้น (ยาสามัญ)
-                    </div>
-                    <ul class="list-none bg-green-50 p-4 rounded-lg border border-green-100">${medItems}</ul>
-                </div>`;
-            }
+            const medItems = result.medicationAdvice && result.medicationAdvice.length > 0 
+                ? result.medicationAdvice.map(item => 
+                    `<li class="flex items-start text-sm text-slate-700 mb-2">
+                        <i data-lucide="pill" class="w-4 h-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0"></i>
+                        <span>${item}</span>
+                    </li>`
+                ).join('') 
+                : '';
 
-            // Red Flags / When to see doctor
-            let redFlagsHTML = '';
-            if (result.redFlags && result.redFlags.length > 0) {
-                const redFlagItems = result.redFlags.map(flag => 
-                    `<li class="text-sm text-red-900 flex items-start mb-1"><span class="mr-2 text-red-600 font-bold">!</span> ${flag}</li>`
-                ).join('');
-                
-                const visitCriteria = result.doctorVisitCriteria ? `<div class="mt-3 text-sm text-red-800 font-medium border-t border-red-200 pt-2">🕒 ${result.doctorVisitCriteria}</div>` : '';
+            const redFlags = result.redFlags && result.redFlags.length > 0
+                ? result.redFlags.map(flag => 
+                    `<li class="flex items-start text-sm text-red-700 mb-2">
+                        <i data-lucide="alert-circle" class="w-4 h-4 text-red-600 mr-2 mt-0.5 flex-shrink-0"></i>
+                        <span>${flag}</span>
+                    </li>`
+                ).join('')
+                : '';
 
-                redFlagsHTML = `
-                <div class="bg-red-50 p-4 rounded-lg border border-red-200 mt-4">
-                    <div class="text-sm font-bold text-red-800 mb-2 flex items-center">
-                        <i data-lucide="siren" class="w-4 h-4 mr-2"></i> สัญญาณที่ควรพบแพทย์ทันที
-                    </div>
-                    <ul class="list-none">${redFlagItems}</ul>
-                    ${visitCriteria}
-                </div>`;
-            }
 
             container.innerHTML = `
-                <div class="rounded-xl shadow-lg overflow-hidden mb-6">
-                    <div class="${headerBg} p-5 text-white flex items-center justify-between">
-                        <div>
-                            <div class="text-xs font-medium opacity-80 uppercase tracking-wider mb-1">ผลวิเคราะห์ความรุนแรง</div>
-                            <div class="text-2xl font-bold flex items-center">
-                                <i data-lucide="${iconName}" class="mr-3 w-6 h-6"></i>
-                                ${statusText}
-                            </div>
+                <!-- 1. Triage Status Card -->
+                <div class="bg-white rounded-xl shadow-md border-l-4 ${borderColor} overflow-hidden mb-6">
+                    <div class="p-6 border-b border-slate-100">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">ระดับความรุนแรง</span>
+                            <span class="px-3 py-1 rounded-full text-xs font-bold border ${badgeBg}">${result.triageLevel || 'ประเมินแล้ว'}</span>
                         </div>
+                        <h2 class="text-2xl font-bold text-slate-800 flex items-center">
+                            <i data-lucide="${iconName}" class="w-8 h-8 text-${themeColor}-600 mr-3"></i>
+                            ${statusText}
+                        </h2>
                     </div>
-                    
-                    <div class="bg-white p-5 border border-slate-200 border-t-0 rounded-b-xl">
-                        <h3 class="text-lg font-bold text-slate-800 mb-3 flex items-center border-b border-slate-100 pb-2">
-                            <i data-lucide="stethoscope" class="w-5 h-5 mr-2 text-slate-500"></i>
-                            ผลการวิเคราะห์อาการ
+                    <div class="p-6 bg-slate-50/50">
+                        <h3 class="text-sm font-bold text-slate-900 mb-3 flex items-center">
+                            <i data-lucide="stethoscope" class="w-4 h-4 mr-2 text-slate-500"></i>
+                            สรุปผลการวิเคราะห์
                         </h3>
-                        <p class="text-base text-slate-700 leading-relaxed mb-4">${result.clinicalSummary}</p>
-                        
-                        <div class="mb-2">
-                            <span class="text-sm text-slate-500 block mb-2 font-medium">โรคที่อาจเป็นไปได้:</span>
+                        <p class="text-slate-700 leading-relaxed mb-4 text-sm bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                            ${result.clinicalSummary}
+                        </p>
+                        <div>
+                            <span class="text-xs font-semibold text-slate-500 block mb-2">โรคที่เข้าข่าย:</span>
                             <div class="flex flex-wrap gap-2">${diagnosisTags}</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-md border border-slate-200 p-5">
-                    <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center border-b border-slate-100 pb-3">
-                        <i data-lucide="clipboard-check" class="w-5 h-5 mr-2 text-slate-500"></i>
-                        การรักษาและการดูแล
-                    </h3>
-                    
-                    <div class="mb-5">
-                        <div class="text-sm font-bold text-blue-900 bg-blue-50 p-3 rounded-lg border-l-4 border-blue-800 mb-3">
-                            สิ่งที่ควรทำทันที: ${result.immediateAction}
-                        </div>
-                        <div class="text-sm font-bold text-slate-800 mb-2 mt-4">การปรับพฤติกรรม</div>
-                        <ul class="list-none">${lifestyleList}</ul>
+                <!-- 2. Treatment Plan -->
+                <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden mb-6">
+                    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center">
+                        <i data-lucide="clipboard-list" class="w-5 h-5 text-slate-600 mr-2"></i>
+                        <h3 class="font-bold text-slate-800">แผนการรักษาและคำแนะนำ</h3>
                     </div>
+                    
+                    <div class="p-6 space-y-6">
+                        <!-- Immediate Action -->
+                        <div>
+                            <h4 class="text-sm font-bold text-${themeColor}-700 mb-2 flex items-center">
+                                <i data-lucide="zap" class="w-4 h-4 mr-2"></i>
+                                สิ่งที่ควรทำทันที
+                            </h4>
+                            <div class="bg-${themeColor}-50 p-4 rounded-lg border border-${themeColor}-100 text-sm text-${themeColor}-900 font-medium leading-relaxed">
+                                ${result.immediateAction}
+                            </div>
+                        </div>
 
-                    ${medicationHTML}
+                        <!-- Lifestyle & Home Care -->
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-700 mb-2">การดูแลตนเอง</h4>
+                            <ul class="list-none">${lifestyleList}</ul>
+                        </div>
 
-                    ${redFlagsHTML}
+                        <!-- Medication -->
+                        ${medItems ? `
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-700 mb-2">ยาบรรเทาอาการ</h4>
+                            <ul class="list-none bg-blue-50/50 p-4 rounded-lg border border-blue-100">${medItems}</ul>
+                        </div>` : ''}
+                    </div>
                 </div>
+
+                <!-- 3. Red Flags Warning (Only if exists) -->
+                ${redFlags ? `
+                <div class="bg-red-50 rounded-xl shadow-sm border border-red-200 overflow-hidden mb-6">
+                    <div class="px-6 py-4 border-b border-red-100 flex items-center text-red-800">
+                        <i data-lucide="siren" class="w-5 h-5 mr-2"></i>
+                        <h3 class="font-bold">สัญญาณอันตราย (Red Flags)</h3>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-xs text-red-600 mb-3 font-medium">หากมีอาการดังต่อไปนี้ โปรดไปพบแพทย์ทันที:</p>
+                        <ul class="list-none space-y-1">${redFlags}</ul>
+                        ${result.doctorVisitCriteria ? `<div class="mt-4 pt-4 border-t border-red-200 text-xs font-semibold text-red-800 flex items-center"><i data-lucide="clock" class="w-3 h-3 mr-1"></i> ${result.doctorVisitCriteria}</div>` : ''}
+                    </div>
+                </div>` : ''}
             `;
             
-            dept.textContent = result.departmentReferral;
-            lucide.createIcons(); // Refresh icons for injected HTML
+            dept.textContent = result.departmentReferral || "-";
+            lucide.createIcons();
         }
 
         function setStep(stepName) {

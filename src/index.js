@@ -1,76 +1,61 @@
 export default {
   async fetch(request, env) {
-    // ---------- CORS ----------
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Content-Type": "application/json"
-    };
-
-    // ---------- Preflight ----------
-    if (request.method === "OPTIONS") {
-      return new Response(null, { headers: corsHeaders });
-    }
-
-    // ---------- Allow POST only ----------
+    // อนุญาตเฉพาะ POST
     if (request.method !== "POST") {
-      return new Response(
-        JSON.stringify({ error: "POST only" }),
-        { status: 405, headers: corsHeaders }
-      );
+      return new Response("POST only", { status: 405 });
     }
-
-    // ---------- Read body ----------
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return new Response(
-        JSON.stringify({ error: "Invalid JSON body" }),
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    const userText = body?.text;
-    if (!userText) {
-      return new Response(
-        JSON.stringify({ error: "Missing text" }),
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    // ---------- Gemini API ----------
-    const GEMINI_URL =
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
-      env.GEMINI_API_KEY;
 
     try {
-      const geminiRes = await fetch(GEMINI_URL, {
+      const body = await request.json();
+      const userText = body.text;
+
+      if (!userText) {
+        return new Response(
+          JSON.stringify({ error: "No text provided" }),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      const url =
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" +
+        env.GEMINI_API_KEY;
+
+      const geminiResponse = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
           contents: [
             {
-              role: "user",
               parts: [{ text: userText }]
             }
           ]
         })
       });
 
-      if (!geminiRes.ok) {
-        const errText = await geminiRes.text();
-        return new Response(
-          JSON.stringify({
-            error: "Gemini API error",
-            detail: errText
-          }),
-          { status: 500, headers: corsHeaders }
-        );
-      }
+      const data = await geminiResponse.json();
 
-      const data = await geminiRes.json();
-
-      // ---------- Extract reply ----------
+      // ดึงคำตอบออกมาให้ frontend ใช้ง่าย
       const reply =
+        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "ไม่สามารถประมวลผลคำตอบได้";
+
+      return new Response(
+        JSON.stringify({ reply }),
+        {
+          headers: { "Content-Type": "application/json" }
+        }
+      );
+
+    } catch (err) {
+      return new Response(
+        JSON.stringify({
+          error: "Internal error",
+          detail: String(err)
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
+  }
+};

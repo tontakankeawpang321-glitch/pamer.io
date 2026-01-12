@@ -56,39 +56,48 @@ export default {
 
     const geminiData = await geminiRes.json();
 
-// DEBUG: ส่ง error จาก Gemini กลับไปให้เห็น
-if (!geminiRes.ok) {
-  return new Response(
-    JSON.stringify({
-      error: "Gemini API error",
-      detail: geminiData
-    }),
-    {
-      status: 500,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-      },
+    // ===============================
+    // DEBUG: Gemini error
+    // ===============================
+    if (!geminiRes.ok) {
+      return new Response(
+        JSON.stringify({
+          error: "Gemini API error",
+          detail: geminiData,
+        }),
+        {
+          status: 500,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        }
+      );
     }
-  );
-}
 
-// รองรับ response หลายแบบ
-let reply = "ไม่สามารถวิเคราะห์อาการได้ในขณะนี้";
+    // ===============================
+    // Parse response
+    // ===============================
+    let reply = "ไม่สามารถวิเคราะห์อาการได้ในขณะนี้";
 
-if (geminiData?.candidates?.length > 0) {
-  reply =
-    geminiData.candidates[0]?.content?.parts
-      ?.map(p => p.text)
-      .join("") || reply;
-}
+    if (geminiData?.candidates?.length > 0) {
+      reply =
+        geminiData.candidates[0]?.content?.parts
+          ?.map(p => p.text)
+          .join("") || reply;
+    }
 
-return new Response(
-  JSON.stringify({ reply, raw: geminiData }),
-  {
-    headers: {
-      ...corsHeaders,
-      "Content-Type": "application/json",
-    },
+    // ===============================
+    // Response
+    // ===============================
+    return new Response(
+      JSON.stringify({ reply, raw: geminiData }),
+      {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
+    );
   }
-);
+};

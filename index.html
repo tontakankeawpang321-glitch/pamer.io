@@ -17,30 +17,22 @@
     <style>
         body {
             font-family: 'Kanit', sans-serif;
-            background-color: #f1f5f9; /* slate-100 */
-            font-size: 16px; /* Base font size 16px */
+            background-color: #f1f5f9;
+            font-size: 16px;
             line-height: 1.6;
         }
         
-        /* Form elements font size fix for mobile */
         input, select, textarea, button {
             font-size: 16px !important;
         }
         
-        /* Animation Classes */
         .fade-in-up {
             animation: fadeInUp 0.5s ease-out forwards;
         }
         
         @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .spin-slow {
@@ -52,47 +44,28 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Hide scrollbar */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Range Input Styling - Darker Theme */
-        input[type=range] {
-            -webkit-appearance: none; 
-            background: transparent; 
-        }
-        
+        input[type=range] { -webkit-appearance: none; background: transparent; }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            height: 20px;
-            width: 20px;
+            height: 20px; width: 20px;
             border-radius: 50%;
-            background: #1e293b; /* slate-800 */
-            cursor: pointer;
-            margin-top: -8px;
+            background: #1e293b;
+            cursor: pointer; margin-top: -8px;
         }
-
         input[type=range]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 4px;
-            cursor: pointer;
-            background: #cbd5e1; /* slate-300 */
+            width: 100%; height: 4px;
+            cursor: pointer; background: #cbd5e1;
             border-radius: 2px;
         }
-
-        input[type=range]:focus {
-            outline: none; 
-        }
+        input[type=range]:focus { outline: none; }
     </style>
 </head>
 <body class="text-slate-900 pb-10 min-h-screen">
 
-    <!-- Header: Dark & Serious Tone -->
+    <!-- Header -->
     <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-20 shadow-md py-3">
         <div class="max-w-xl mx-auto px-4 flex items-center justify-between">
             <div class="flex items-center space-x-3">
@@ -123,7 +96,6 @@
                 </div>
                 
                 <div class="p-5 space-y-5">
-                    <!-- Basic Info -->
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="text-sm font-bold text-slate-700 mb-1.5 block">อายุ (ปี)</label>
@@ -137,8 +109,6 @@
                                 <option value="female">หญิง</option>
                             </select>
                         </div>
-                        
-                        <!-- Temperature -->
                         <div>
                             <label class="text-sm font-bold text-slate-700 mb-1.5 block">อุณหภูมิร่างกาย</label>
                             <div class="relative">
@@ -150,8 +120,6 @@
                                 <i data-lucide="chevron-down" class="absolute right-3 top-3.5 w-4 h-4 text-slate-500 pointer-events-none"></i>
                             </div>
                         </div>
-
-                        <!-- BP -->
                         <div>
                             <label class="text-sm font-bold text-slate-700 mb-1.5 block">ความดันโลหิต</label>
                             <div class="relative">
@@ -166,18 +134,14 @@
                         </div>
                     </div>
 
-                    <!-- Conditions -->
                     <div>
                         <label class="text-sm font-bold text-slate-700 mb-2 block">โรคประจำตัว (เลือกได้มากกว่า 1)</label>
-                        <div class="flex flex-wrap gap-2 mb-3" id="conditions-container">
-                            <!-- JS will inject buttons here -->
-                        </div>
+                        <div class="flex flex-wrap gap-2 mb-3" id="conditions-container"></div>
                         <input type="text" id="allergies" placeholder="ประวัติแพ้ยา / แพ้อาหาร (ถ้ามี)" class="w-full h-11 px-3 rounded-lg border border-slate-300 bg-white focus:border-blue-800 focus:ring-1 focus:ring-blue-800 outline-none placeholder-slate-400">
                     </div>
 
                     <div class="border-t border-slate-200 my-2"></div>
 
-                    <!-- Symptoms -->
                     <div>
                         <label class="text-sm font-bold text-slate-700 mb-2 block">เล่าอาการที่เป็น</label>
                         <textarea id="symptoms" rows="3" placeholder="เช่น ปวดท้องขวาล่างมาก, ไอแห้งๆ, อ่อนเพลีย ไม่มีแรง..." class="w-full p-3 rounded-lg border border-slate-300 bg-white focus:border-blue-800 focus:ring-1 focus:ring-blue-800 outline-none resize-none leading-relaxed"></textarea>
@@ -232,7 +196,6 @@
 
         <!-- STEP 3: RESULT -->
         <div id="step-result" class="hidden fade-in-up">
-            <!-- Content will be injected by JS -->
             <div id="result-container"></div>
             
             <div class="mt-6 bg-slate-900 text-white rounded-xl p-6 shadow-xl relative overflow-hidden">
@@ -267,8 +230,7 @@
     </main>
 
     <script>
-        // --- State Management ---
-        const apiKey = ""; // API Key will be injected at runtime
+        const apiKey = ""; // API Key injected automatically
         
         let formData = {
             age: '',
@@ -287,20 +249,17 @@
             "เบาหวาน", "ความดันสูง", "ไขมันสูง", "โรคหัวใจ", "หอบหืด", "โรคไต"
         ];
 
-        // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             renderConditions();
             setupEventListeners();
         });
 
-        // --- UI Rendering ---
         function renderConditions() {
             const container = document.getElementById('conditions-container');
             container.innerHTML = commonConditions.map(cond => {
                 const isSelected = formData.underlying_conditions.includes(cond);
                 const baseClass = "text-sm py-2 px-3 rounded-lg border transition-all cursor-pointer select-none font-medium";
-                // Darker active state for serious tone
                 const activeClass = "bg-slate-700 border-slate-700 text-white shadow-sm"; 
                 const inactiveClass = "bg-white border-slate-300 text-slate-600 hover:bg-slate-50";
                 
@@ -309,9 +268,7 @@
         }
 
         function setupEventListeners() {
-            // Inputs mapping
             const inputs = ['age', 'gender', 'temperature', 'pressure', 'allergies', 'symptoms', 'duration', 'duration_unit', 'pain_score'];
-            
             inputs.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
@@ -325,84 +282,61 @@
             });
         }
 
-        // --- Logic ---
         function toggleCondition(condition) {
             if (formData.underlying_conditions.includes(condition)) {
                 formData.underlying_conditions = formData.underlying_conditions.filter(c => c !== condition);
             } else {
                 formData.underlying_conditions.push(condition);
             }
-            renderConditions(); // Re-render to update styling
+            renderConditions();
         }
 
-        // Robust JSON Parsing function to handle extra text
         function parseAIResponse(text) {
-            // 1. Remove Markdown code blocks first
             let cleanText = text.replace(/```json\n?|\n?```/g, '').trim();
-            
-            // 2. Try simple parse first
             try {
                 return JSON.parse(cleanText);
             } catch (e) {
-                // 3. If failed, try finding the JSON object bounds
                 const firstBrace = cleanText.indexOf('{');
                 const lastBrace = cleanText.lastIndexOf('}');
-                
                 if (firstBrace !== -1 && lastBrace !== -1) {
                     const jsonString = cleanText.substring(firstBrace, lastBrace + 1);
                     return JSON.parse(jsonString);
                 }
-                throw e; // Rethrow if no JSON found
+                throw e;
             }
         }
 
         async function analyzeSymptoms() {
-            // Validation
             if (!formData.symptoms || !formData.age) {
                 alert('กรุณากรอกข้อมูลสำคัญ: อายุ และ อาการที่เป็น');
                 return;
             }
 
-            // Set UI to Loading
             setStep('loading');
 
-            // SYSTEM PROMPT
             const systemPrompt = `บทบาท: คุณคือ AI ทางการแพทย์ที่ทำหน้าที่คัดกรองผู้ป่วยเบื้องต้น (Medical Triage)
-            
             คำสั่ง: วิเคราะห์ข้อมูลผู้ป่วยที่ได้รับ และประเมินความเร่งด่วน รวมถึงให้คำแนะนำการรักษา
-            
             ข้อกำหนดการตอบกลับ:
             1. ตอบเป็น JSON เท่านั้น
             2. ใช้ภาษาไทยที่ "เข้าใจง่าย" "สุภาพ" และ "จริงจัง"
-            3. หลีกเลี่ยงศัพท์เทคนิคภาษาอังกฤษ หรือศัพท์แพทย์ยากๆ (ถ้าต้องใช้ให้ทับศัพท์หรืออธิบายไทย)
-            4. โทนเสียง: เป็นผู้เชี่ยวชาญ น่าเชื่อถือ ห่วงใยแต่ไม่เล่นหัว
+            3. โทนเสียง: เป็นผู้เชี่ยวชาญ น่าเชื่อถือ
             
             โครงสร้าง JSON ที่ต้องการ:
             {
               "triageLevel": "ไม่เร่งด่วน" | "เร่งด่วน" | "ฉุกเฉิน",
               "triageColor": "green" | "yellow" | "red",
               "clinicalSummary": "สรุปอาการและสาเหตุที่เป็นไปได้",
-              "differentialDiagnosis": ["โรคที่อาจเป็นไปได้ 1", "โรคที่อาจเป็นไปได้ 2"],
+              "differentialDiagnosis": ["โรคที่อาจเป็นไปได้ 1"],
               "immediateAction": "การรักษาเบื้องต้นที่ทำได้ทันที",
               "lifestyleAdvice": ["คำแนะนำการดูแลตัวเอง"],
-              "medicationAdvice": ["ชื่อยาที่แนะนำ (เช่น ยาสามัญประจำบ้าน) พร้อมสรรพคุณสั้นๆ"],
-              "redFlags": ["สัญญาณอันตราย (ถ้ามีอาการเหล่านี้ต้องรีบไปพบแพทย์)"],
-              "doctorVisitCriteria": "คำแนะนำว่าควรไปพบแพทย์เมื่อไร (เช่น ภายใน 24 ชม., หรือถ้ารักษาเบื้องต้นแล้วไม่ดีขึ้น)",
+              "medicationAdvice": ["ชื่อยาที่แนะนำ (เช่น ยาสามัญประจำบ้าน)"],
+              "redFlags": ["สัญญาณอันตราย"],
+              "doctorVisitCriteria": "ควรไปพบแพทย์เมื่อไร",
               "departmentReferral": "แผนกแพทย์ที่ควรไปพบ"
             }`;
 
-            const tempMap = {
-                'normal': 'ปกติ',
-                'warm': 'ตัวรุมๆ (ไข้ต่ำ)',
-                'hot': 'ตัวร้อนจัด (ไข้สูง)'
-            };
-            
-            const bpMap = {
-                'unknown': 'ไม่ทราบ',
-                'normal': 'ปกติ',
-                'low': 'ต่ำ',
-                'high': 'สูง'
-            };
+            const tempMap = { 'normal': 'ปกติ', 'warm': 'ตัวรุมๆ (ไข้ต่ำ)', 'hot': 'ตัวร้อนจัด (ไข้สูง)' };
+            const bpMap = { 'unknown': 'ไม่ทราบ', 'normal': 'ปกติ', 'low': 'ต่ำ', 'high': 'สูง' };
 
             const userQuery = `ข้อมูลผู้ป่วย:
             - อายุ: ${formData.age}, เพศ: ${formData.gender}
@@ -417,54 +351,62 @@
             const fullPrompt = `${systemPrompt}\n\n${userQuery}`;
 
             try {
-                // Using the requested backend worker
-                const response = await fetch("https://pamer.tontakankeawpang321.workers.dev", {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: fullPrompt })
-                });
-
-                if (!response.ok) throw new Error('การเชื่อมต่อล้มเหลว (Connection Error)');
-
-                const data = await response.json();
-                
-                // --- Robust Processing Start ---
                 let content;
                 
-                // 1. Get the Raw string (handle both direct string and { reply: ... })
-                const rawResponse = data.reply || (typeof data === 'string' ? data : '');
-
-                if (!rawResponse) {
-                     console.error("Invalid Response Format:", data);
-                     throw new Error('รูปแบบข้อมูลตอบกลับไม่ถูกต้อง (Invalid Format)');
-                }
-
-                // 2. Parse JSON safely
+                // --- ATTEMPT 1: Worker ---
                 try {
-                    content = parseAIResponse(rawResponse);
+                    const workerResponse = await fetch("https://pamer.tontakankeawpang321.workers.dev", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: fullPrompt })
+                    });
+
+                    if (workerResponse.ok) {
+                         const data = await workerResponse.json();
+                         const rawResponse = data.reply || (typeof data === 'string' ? data : '');
+                         if (rawResponse) {
+                             content = parseAIResponse(rawResponse);
+                         }
+                    }
                 } catch (e) {
-                    console.error("JSON Parsing Failed:", e, rawResponse);
-                    throw new Error('ระบบไม่สามารถแปลผลลัพธ์ได้ (JSON Error)');
+                    console.warn("Worker connection failed, attempting fallback...");
                 }
 
-                // 3. Schema Validation & Defaults (Prevent undefined errors)
-                // Ensure Arrays are arrays
-                content.differentialDiagnosis = Array.isArray(content.differentialDiagnosis) ? content.differentialDiagnosis : [];
-                content.lifestyleAdvice = Array.isArray(content.lifestyleAdvice) ? content.lifestyleAdvice : [];
-                content.medicationAdvice = Array.isArray(content.medicationAdvice) ? content.medicationAdvice : [];
-                content.redFlags = Array.isArray(content.redFlags) ? content.redFlags : [];
-                
-                // Ensure essential strings exist
+                // --- ATTEMPT 2: Fallback (Direct API) ---
+                if (!content) {
+                    console.log("Using Fallback API");
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: fullPrompt }] }],
+                            generationConfig: { responseMimeType: "application/json" }
+                        })
+                    });
+                    
+                    if (!response.ok) throw new Error('การเชื่อมต่อล้มเหลว (Connection Error)');
+                    
+                    const data = await response.json();
+                    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (!rawText) throw new Error("API ไม่ส่งข้อมูลกลับมา");
+                    content = parseAIResponse(rawText);
+                }
+
+                // Defaults
+                content.differentialDiagnosis = content.differentialDiagnosis || [];
+                content.lifestyleAdvice = content.lifestyleAdvice || [];
+                content.medicationAdvice = content.medicationAdvice || [];
+                content.redFlags = content.redFlags || [];
                 content.clinicalSummary = content.clinicalSummary || "ไม่สามารถสรุปข้อมูลได้";
                 content.departmentReferral = content.departmentReferral || "-";
-                // --- Robust Processing End ---
+                content.immediateAction = content.immediateAction || "-";
                 
                 renderResult(content);
                 setStep('result');
 
             } catch (err) {
                 console.error(err);
-                showError(err.message || 'ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้ง');
+                showError('ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้ง');
                 setStep('input');
             }
         }
@@ -473,7 +415,6 @@
             const container = document.getElementById('result-container');
             const dept = document.getElementById('referral-dept');
 
-            // --- Logic for Colors & Icons ---
             let themeColor = "teal";
             let iconName = "check-circle";
             let statusText = "อาการทั่วไป (ไม่เร่งด่วน)";
@@ -494,14 +435,10 @@
                 borderColor = "border-amber-500";
             }
 
-            // --- HTML Construction ---
-            
-            // 1. Tags
             const diagnosisTags = result.differentialDiagnosis.map(dx => 
                 `<span class="px-3 py-1 bg-slate-50 text-slate-700 rounded-md text-sm font-medium border border-slate-200 shadow-sm">${dx}</span>`
             ).join('');
 
-            // 2. Lists
             const lifestyleList = result.lifestyleAdvice.map(item => 
                 `<li class="flex items-start text-sm text-slate-700 mb-2">
                     <i data-lucide="check" class="w-4 h-4 text-${themeColor}-600 mr-2 mt-0.5 flex-shrink-0"></i>
@@ -515,8 +452,7 @@
                         <i data-lucide="pill" class="w-4 h-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0"></i>
                         <span>${item}</span>
                     </li>`
-                ).join('') 
-                : '';
+                ).join('') : '';
 
             const redFlags = result.redFlags && result.redFlags.length > 0
                 ? result.redFlags.map(flag => 
@@ -524,12 +460,9 @@
                         <i data-lucide="alert-circle" class="w-4 h-4 text-red-600 mr-2 mt-0.5 flex-shrink-0"></i>
                         <span>${flag}</span>
                     </li>`
-                ).join('')
-                : '';
-
+                ).join('') : '';
 
             container.innerHTML = `
-                <!-- 1. Triage Status Card -->
                 <div class="bg-white rounded-xl shadow-md border-l-4 ${borderColor} overflow-hidden mb-6">
                     <div class="p-6 border-b border-slate-100">
                         <div class="flex items-center justify-between mb-2">
@@ -556,7 +489,6 @@
                     </div>
                 </div>
 
-                <!-- 2. Treatment Plan -->
                 <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden mb-6">
                     <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center">
                         <i data-lucide="clipboard-list" class="w-5 h-5 text-slate-600 mr-2"></i>
@@ -564,7 +496,6 @@
                     </div>
                     
                     <div class="p-6 space-y-6">
-                        <!-- Immediate Action -->
                         <div>
                             <h4 class="text-sm font-bold text-${themeColor}-700 mb-2 flex items-center">
                                 <i data-lucide="zap" class="w-4 h-4 mr-2"></i>
@@ -575,13 +506,11 @@
                             </div>
                         </div>
 
-                        <!-- Lifestyle & Home Care -->
                         <div>
                             <h4 class="text-sm font-bold text-slate-700 mb-2">การดูแลตนเอง</h4>
                             <ul class="list-none">${lifestyleList}</ul>
                         </div>
 
-                        <!-- Medication -->
                         ${medItems ? `
                         <div>
                             <h4 class="text-sm font-bold text-slate-700 mb-2">ยาบรรเทาอาการ</h4>
@@ -590,7 +519,6 @@
                     </div>
                 </div>
 
-                <!-- 3. Red Flags Warning (Only if exists) -->
                 ${redFlags ? `
                 <div class="bg-red-50 rounded-xl shadow-sm border border-red-200 overflow-hidden mb-6">
                     <div class="px-6 py-4 border-b border-red-100 flex items-center text-red-800">

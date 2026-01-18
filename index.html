@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MediCheck - ระบบคัดกรองเบื้องต้น</title>
     
     <!-- Tailwind CSS -->
@@ -20,8 +20,10 @@
             background-color: #f1f5f9;
             font-size: 16px;
             line-height: 1.6;
+            -webkit-tap-highlight-color: transparent;
         }
         
+        /* ป้องกัน Font ขยายเองบน iOS */
         input, select, textarea, button {
             font-size: 16px !important;
         }
@@ -50,39 +52,42 @@
         input[type=range] { -webkit-appearance: none; background: transparent; }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            height: 20px; width: 20px;
+            height: 24px; width: 24px; /* ใหญ่ขึ้นสำหรับนิ้ว */
             border-radius: 50%;
             background: #1e293b;
-            cursor: pointer; margin-top: -8px;
+            cursor: pointer; margin-top: -10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
         input[type=range]::-webkit-slider-runnable-track {
-            width: 100%; height: 4px;
+            width: 100%; height: 6px;
             cursor: pointer; background: #cbd5e1;
-            border-radius: 2px;
+            border-radius: 3px;
         }
         input[type=range]:focus { outline: none; }
 
         /* Chatbot Styles */
         .chat-bubble-user {
-            background-color: #1e293b; /* slate-800 */
+            background-color: #1e293b;
             color: white;
-            border-radius: 12px 12px 0 12px;
-            padding: 10px 14px;
-            max-width: 80%;
+            border-radius: 16px 16px 2px 16px;
+            padding: 12px 16px;
+            max-width: 85%;
             align-self: flex-end;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-size: 0.95rem;
         }
         .chat-bubble-bot {
             background-color: white;
-            color: #1e293b; /* slate-800 */
+            color: #1e293b;
             border: 1px solid #e2e8f0;
-            border-radius: 12px 12px 12px 0;
-            padding: 10px 14px;
-            max-width: 80%;
+            border-radius: 16px 16px 16px 2px;
+            padding: 12px 16px;
+            max-width: 85%;
             align-self: flex-start;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            font-size: 0.95rem;
         }
         .typing-dot {
             width: 6px; height: 6px;
@@ -98,22 +103,22 @@
         }
     </style>
 </head>
-<body class="text-slate-900 pb-10 min-h-screen relative">
+<body class="text-slate-900 pb-32 min-h-screen relative">
 
     <!-- Header -->
-    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-20 shadow-md py-3">
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 shadow-md py-3 safe-area-top">
         <div class="max-w-xl mx-auto px-4 flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="bg-blue-600 p-1.5 rounded-lg shadow-sm flex items-center justify-center">
-                    <i data-lucide="activity" class="h-5 w-5 text-white"></i>
+                    <i data-lucide="activity" class="h-6 w-6 text-white"></i>
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold text-white leading-none">MediCheck</h1>
-                    <p class="text-xs text-slate-400 mt-0.5">ระบบคัดกรองสุขภาพเบื้องต้น</p>
+                    <h1 class="text-xl font-bold text-white leading-none">MediCheck</h1>
+                    <p class="text-xs text-slate-400 mt-0.5">ระบบคัดกรองสุขภาพ</p>
                 </div>
             </div>
-            <div class="text-xs text-slate-400 font-medium border border-slate-700 px-2 py-1 rounded">
-                AI Health
+            <div class="text-[10px] text-slate-400 font-medium border border-slate-700 px-2 py-1 rounded bg-slate-800">
+                AI Powered
             </div>
         </div>
     </header>
@@ -122,49 +127,54 @@
         
         <!-- STEP 1: INPUT FORM -->
         <div id="step-input" class="fade-in-up">
-            <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
-                <div class="bg-slate-100 px-5 py-3 border-b border-slate-200">
-                    <h2 class="text-base font-bold text-slate-800 flex items-center">
-                        <i data-lucide="clipboard-list" class="w-5 h-5 text-blue-800 mr-2"></i>
-                        แบบฟอร์มประเมินอาการ
+            <div class="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
+                <div class="bg-slate-100 px-5 py-4 border-b border-slate-200">
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center">
+                        <i data-lucide="clipboard-list" class="w-6 h-6 text-blue-800 mr-2"></i>
+                        ข้อมูลสุขภาพ
                     </h2>
                 </div>
                 
-                <div class="p-5 space-y-5">
+                <div class="p-5 space-y-6">
                     <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-sm font-bold text-slate-700 mb-1.5 block">อายุ (ปี)</label>
-                            <input type="number" id="age" class="w-full h-11 px-3 rounded-lg border border-slate-300 bg-white focus:bg-white focus:border-blue-800 focus:ring-1 focus:ring-blue-800 outline-none transition-all placeholder-slate-400" placeholder="ระบุตัวเลข">
+                        <div class="col-span-1">
+                            <label class="text-sm font-bold text-slate-700 mb-2 block">อายุ (ปี)</label>
+                            <input type="number" id="age" class="w-full h-12 px-4 rounded-xl border border-slate-300 bg-white focus:bg-white focus:border-blue-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder-slate-400" placeholder="ระบุ">
                         </div>
-                        <div>
-                            <label class="text-sm font-bold text-slate-700 mb-1.5 block">เพศ</label>
-                            <select id="gender" class="w-full h-11 px-3 rounded-lg border border-slate-300 bg-white focus:border-blue-800 focus:ring-1 focus:ring-blue-800 outline-none">
-                                <option value="not-specified">ไม่ระบุ</option>
-                                <option value="male">ชาย</option>
-                                <option value="female">หญิง</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="text-sm font-bold text-slate-700 mb-1.5 block">อุณหภูมิร่างกาย</label>
+                        <div class="col-span-1">
+                            <label class="text-sm font-bold text-slate-700 mb-2 block">เพศ</label>
                             <div class="relative">
-                                <select id="temperature" class="w-full h-11 pl-3 pr-8 rounded-lg border border-slate-300 bg-white focus:border-blue-800 focus:ring-1 focus:ring-blue-800 outline-none appearance-none">
-                                    <option value="normal">ปกติ</option>
+                                <select id="gender" class="w-full h-12 px-4 rounded-xl border border-slate-300 bg-white focus:border-blue-800 focus:ring-2 focus:ring-blue-100 outline-none appearance-none">
+                                    <option value="not-specified">ระบุ...</option>
+                                    <option value="male">ชาย</option>
+                                    <option value="female">หญิง</option>
+                                </select>
+                                <i data-lucide="chevron-down" class="absolute right-3 top-3.5 w-5 h-5 text-slate-400 pointer-events-none"></i>
+                            </div>
+                        </div>
+                        <div class="col-span-2 sm:col-span-1">
+                            <label class="text-sm font-bold text-slate-700 mb-2 block">อุณหภูมิร่างกาย</label>
+                            <div class="relative">
+                                <select id="temperature" class="w-full h-12 pl-10 pr-8 rounded-xl border border-slate-300 bg-white focus:border-blue-800 focus:ring-2 focus:ring-blue-100 outline-none appearance-none">
+                                    <option value="normal">ปกติ (ไม่ตัวร้อน)</option>
                                     <option value="warm">ตัวรุมๆ (มีไข้ต่ำ)</option>
                                     <option value="hot">ตัวร้อนจัด (ไข้สูง)</option>
                                 </select>
-                                <i data-lucide="chevron-down" class="absolute right-3 top-3.5 w-4 h-4 text-slate-500 pointer-events-none"></i>
+                                <i data-lucide="thermometer" class="absolute left-3 top-3.5 w-5 h-5 text-slate-400 pointer-events-none"></i>
+                                <i data-lucide="chevron-down" class="absolute right-3 top-3.5 w-5 h-5 text-slate-400 pointer-events-none"></i>
                             </div>
                         </div>
-                        <div>
-                            <label class="text-sm font-bold text-slate-700 mb-1.5 block">ความดันโลหิต</label>
+                        <div class="col-span-2 sm:col-span-1">
+                            <label class="text-sm font-bold text-slate-700 mb-2 block">ความดันโลหิต</label>
                             <div class="relative">
-                                <select id="pressure" class="w-full h-11 pl-3 pr-8 rounded-lg border border-slate-300 bg-white focus:border-blue-800 focus:ring-1 focus:ring-blue-800 outline-none appearance-none">
+                                <select id="pressure" class="w-full h-12 pl-10 pr-8 rounded-xl border border-slate-300 bg-white focus:border-blue-800 focus:ring-2 focus:ring-blue-100 outline-none appearance-none">
                                     <option value="unknown">ไม่ทราบ</option>
                                     <option value="normal">ปกติ</option>
-                                    <option value="low">ต่ำ</option>
-                                    <option value="high">สูง</option>
+                                    <option value="low">ต่ำ (หน้ามืดบ่อย)</option>
+                                    <option value="high">สูง (ปวดหัว)</option>
                                 </select>
-                                <i data-lucide="chevron-down" class="absolute right-3 top-3.5 w-4 h-4 text-slate-500 pointer-events-none"></i>
+                                <i data-lucide="activity" class="absolute left-3 top-3.5 w-5 h-5 text-slate-400 pointer-events-none"></i>
+                                <i data-lucide="chevron-down" class="absolute right-3 top-3.5 w-5 h-5 text-slate-400 pointer-events-none"></i>
                             </div>
                         </div>
                     </div>
@@ -172,68 +182,76 @@
                     <div>
                         <label class="text-sm font-bold text-slate-700 mb-2 block">โรคประจำตัว (เลือกได้มากกว่า 1)</label>
                         <div class="flex flex-wrap gap-2 mb-3" id="conditions-container"></div>
-                        <input type="text" id="allergies" placeholder="ประวัติแพ้ยา / แพ้อาหาร (ถ้ามี)" class="w-full h-11 px-3 rounded-lg border border-slate-300 bg-white focus:border-blue-800 focus:ring-1 focus:ring-blue-800 outline-none placeholder-slate-400">
+                        <input type="text" id="allergies" placeholder="ประวัติแพ้ยา / อาหาร (ระบุถ้ามี)" class="w-full h-12 px-4 rounded-xl border border-slate-300 bg-white focus:border-blue-800 focus:ring-2 focus:ring-blue-100 outline-none placeholder-slate-400">
                     </div>
 
                     <div class="border-t border-slate-200 my-2"></div>
 
                     <div>
-                        <label class="text-sm font-bold text-slate-700 mb-2 block">เล่าอาการที่เป็น</label>
-                        <textarea id="symptoms" rows="3" placeholder="เช่น ปวดท้องขวาล่างมาก, ไอแห้งๆ, อ่อนเพลีย ไม่มีแรง..." class="w-full p-3 rounded-lg border border-slate-300 bg-white focus:border-blue-800 focus:ring-1 focus:ring-blue-800 outline-none resize-none leading-relaxed"></textarea>
+                        <label class="text-sm font-bold text-slate-700 mb-2 block">อาการที่เป็น *</label>
+                        <textarea id="symptoms" rows="3" placeholder="อธิบายอาการ เช่น ปวดท้องขวาล่าง, ไอแห้งๆ, อ่อนเพลีย..." class="w-full p-4 rounded-xl border border-slate-300 bg-white focus:border-blue-800 focus:ring-2 focus:ring-blue-100 outline-none resize-none leading-relaxed"></textarea>
 
-                        <div class="flex flex-col sm:flex-row gap-4 mt-4">
-                            <div class="flex-1">
-                                <label class="text-sm font-bold text-slate-700 mb-1.5 block">เป็นมานานเท่าไร</label>
-                                <div class="flex">
-                                    <input type="number" id="duration" class="w-full h-11 px-3 rounded-l-lg border border-r-0 border-slate-300 bg-white focus:border-blue-800 focus:ring-1 focus:ring-blue-800 outline-none z-10" placeholder="ระบุตัวเลข">
-                                    <select id="duration_unit" class="h-11 px-2 rounded-r-lg border border-slate-300 bg-slate-100 text-slate-700 outline-none border-l-0">
+                        <div class="flex flex-col gap-5 mt-5">
+                            <div>
+                                <label class="text-sm font-bold text-slate-700 mb-2 block">เป็นมานานเท่าไร</label>
+                                <div class="flex shadow-sm rounded-xl overflow-hidden">
+                                    <input type="number" id="duration" class="w-full h-12 px-4 border border-r-0 border-slate-300 bg-white focus:border-blue-800 focus:ring-1 focus:ring-blue-800 outline-none z-10 rounded-l-xl" placeholder="ตัวเลข">
+                                    <select id="duration_unit" class="h-12 px-4 border border-l-0 border-slate-300 bg-slate-50 text-slate-700 outline-none rounded-r-xl font-medium min-w-[90px]">
                                         <option value="วัน">วัน</option>
-                                        <option value="ชั่วโมง">ชั่วโมง</option>
-                                        <option value="สัปดาห์">สัปดาห์</option>
+                                        <option value="ชั่วโมง">ชม.</option>
+                                        <option value="สัปดาห์">wk</option>
                                     </select>
                                 </div>
                             </div>
-                            <div class="flex-1">
-                                <label class="text-sm font-bold text-slate-700 mb-1.5 block flex justify-between items-center">
-                                    <span>ระดับความเจ็บปวด (1-10)</span>
-                                    <span id="pain-score-display" class="font-bold text-blue-800 text-lg bg-blue-100 px-2 rounded">5</span>
-                                </label>
-                                <div class="h-11 flex items-center px-2 border border-slate-300 rounded-lg bg-slate-50">
+                            
+                            <div>
+                                <div class="flex justify-between items-end mb-3">
+                                    <label class="text-sm font-bold text-slate-700 block">ระดับความเจ็บปวด</label>
+                                    <span id="pain-score-display" class="font-bold text-white text-base bg-blue-600 px-3 py-0.5 rounded-full shadow-sm">5 / 10</span>
+                                </div>
+                                <div class="h-12 flex items-center px-4 border border-slate-300 rounded-xl bg-slate-50">
                                     <input type="range" id="pain_score" min="0" max="10" step="1" value="5" class="w-full">
+                                </div>
+                                <div class="flex justify-between text-xs text-slate-400 mt-1 px-1">
+                                    <span>ไม่เจ็บ</span>
+                                    <span>ปานกลาง</span>
+                                    <span>เจ็บมาก</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <button onclick="analyzeSymptoms()" class="w-full mt-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-lg py-3.5 rounded-xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center space-x-2">
+                    <button onclick="analyzeSymptoms()" class="w-full mt-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-lg py-4 rounded-xl shadow-lg shadow-slate-300 transition-all active:scale-[0.98] flex items-center justify-center space-x-3">
                         <span>เริ่มประเมินผล</span>
-                        <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                        <div class="bg-white/20 rounded-full p-1">
+                            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                        </div>
                     </button>
                     
-                    <p class="text-center text-xs text-slate-500 mt-2">
-                        * ข้อมูลนี้ใช้เพื่อแนะนำเบื้องต้นเท่านั้น ไม่สามารถใช้แทนการวินิจฉัยของแพทย์ได้
+                    <p class="text-center text-xs text-slate-400 mt-2">
+                        * เป็นคำแนะนำเบื้องต้น ไม่สามารถทดแทนการวินิจฉัยโดยแพทย์
                     </p>
                 </div>
             </div>
         </div>
 
         <!-- STEP 2: LOADING -->
-        <div id="step-loading" class="hidden h-[400px] flex flex-col items-center justify-center text-center fade-in-up bg-white rounded-xl border border-slate-200 shadow-sm">
-            <div class="relative mb-6">
-                <div class="w-16 h-16 border-[6px] border-slate-100 border-t-blue-800 rounded-full spin-slow"></div>
+        <div id="step-loading" class="hidden h-[60vh] flex flex-col items-center justify-center text-center fade-in-up bg-white rounded-2xl border border-slate-200 shadow-sm mx-4">
+            <div class="relative mb-8">
+                <div class="w-20 h-20 border-[6px] border-slate-100 border-t-blue-800 rounded-full spin-slow"></div>
                 <div class="absolute inset-0 m-auto flex items-center justify-center">
-                    <i data-lucide="loader-2" class="w-6 h-6 text-blue-800 animate-pulse"></i>
+                    <i data-lucide="loader-2" class="w-8 h-8 text-blue-800 animate-pulse"></i>
                 </div>
             </div>
-            <h3 class="text-lg font-bold text-slate-800">กำลังประมวลผลข้อมูล...</h3>
-            <p class="text-base text-slate-500 mt-2">ระบบ AI กำลังวิเคราะห์ความเสี่ยงและอาการของคุณ</p>
+            <h3 class="text-xl font-bold text-slate-800">กำลังประมวลผล...</h3>
+            <p class="text-base text-slate-500 mt-2 px-6">AI กำลังวิเคราะห์อาการของคุณ<br>โปรดรอสักครู่</p>
         </div>
 
         <!-- STEP 3: RESULT -->
-        <div id="step-result" class="hidden fade-in-up">
+        <div id="step-result" class="hidden fade-in-up pb-10">
             <div id="result-container"></div>
             
-            <div class="mt-6 bg-slate-900 text-white rounded-xl p-6 shadow-xl relative overflow-hidden">
+            <div class="mt-6 bg-slate-900 text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
                 <div class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
                     <i data-lucide="hospital" class="w-48 h-48 text-white"></i>
                 </div>
@@ -243,11 +261,11 @@
                         <div>
                             <div class="text-xs text-slate-400 uppercase tracking-widest font-semibold mb-2">คำแนะนำการส่งต่อ</div>
                             <div class="text-sm opacity-90 mb-1">แผนกแพทย์ที่แนะนำ:</div>
-                            <div id="referral-dept" class="text-3xl font-bold text-blue-300 tracking-tight">-</div>
+                            <div id="referral-dept" class="text-3xl font-bold text-blue-300 tracking-tight leading-tight">-</div>
                         </div>
                     </div>
                     
-                    <button onclick="resetForm()" class="w-full bg-white text-slate-900 font-bold py-4 rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center space-x-2 shadow-lg">
+                    <button onclick="resetForm()" class="w-full bg-white text-slate-900 font-bold py-4 rounded-xl hover:bg-slate-100 transition-colors flex items-center justify-center space-x-2 shadow-lg active:scale-95">
                         <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
                         <span>ประเมินอาการใหม่</span>
                     </button>
@@ -256,46 +274,55 @@
         </div>
 
         <!-- Error Notification -->
-        <div id="error-toast" class="hidden fixed bottom-6 right-6 bg-red-100 border-l-4 border-red-600 text-red-900 px-5 py-4 rounded shadow-xl z-50 text-sm font-medium flex items-center">
-            <i data-lucide="alert-circle" class="w-5 h-5 mr-3 text-red-600"></i>
-            <span id="error-message">Error</span>
-            <button onclick="document.getElementById('error-toast').classList.add('hidden')" class="ml-4 font-bold text-red-500 hover:text-red-800">✕</button>
+        <div id="error-toast" class="hidden fixed bottom-24 left-4 right-4 bg-red-100 border-l-4 border-red-600 text-red-900 px-5 py-4 rounded-xl shadow-2xl z-50 text-sm font-medium flex items-center animate-bounce-in">
+            <i data-lucide="alert-circle" class="w-6 h-6 mr-3 text-red-600 flex-shrink-0"></i>
+            <span id="error-message" class="flex-1">Error</span>
+            <button onclick="document.getElementById('error-toast').classList.add('hidden')" class="ml-4 p-2 bg-red-200 rounded-full text-red-700">✕</button>
         </div>
 
     </main>
 
     <!-- FLOATING CHATBOT BUTTON -->
-    <button onclick="toggleChat()" class="fixed bottom-6 right-6 bg-slate-800 hover:bg-slate-700 text-white p-4 rounded-full shadow-xl transition-all z-50 hover:scale-105 active:scale-95 flex items-center justify-center">
+    <button id="chatbot-floating-btn" onclick="toggleChat()" class="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 bg-slate-900 hover:bg-slate-800 text-white w-14 h-14 rounded-full shadow-2xl transition-all z-40 hover:scale-110 active:scale-90 flex items-center justify-center border-2 border-white/20">
         <i data-lucide="message-circle" class="w-7 h-7"></i>
     </button>
 
-    <!-- CHATBOT WINDOW -->
-    <div id="chatbot-window" class="fixed bottom-24 right-6 w-[340px] h-[450px] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col hidden z-40 animate-in fade-in slide-in-from-bottom-10 duration-300">
+    <!-- CHATBOT WINDOW (Mobile Optimized) -->
+    <!-- Changed position from bottom-24 to bottom-4 for better mobile usage when button is hidden -->
+    <div id="chatbot-window" class="fixed bottom-4 right-4 left-4 sm:left-auto sm:right-8 sm:w-[380px] h-[60vh] sm:h-[550px] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col hidden z-50 animate-in fade-in slide-in-from-bottom-5 duration-300 overflow-hidden">
         <!-- Header -->
-        <div class="bg-slate-800 p-4 rounded-t-2xl flex justify-between items-center">
-            <div class="flex items-center space-x-2">
-                <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <h3 class="text-white font-bold">MediBot Assistant</h3>
+        <div class="bg-slate-900 p-4 flex justify-between items-center shadow-md">
+            <div class="flex items-center space-x-3">
+                <div class="relative">
+                    <div class="bg-blue-600 p-1.5 rounded-full">
+                        <i data-lucide="bot" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-900"></div>
+                </div>
+                <div>
+                    <h3 class="text-white font-bold text-sm leading-tight">MediBot</h3>
+                    <p class="text-[10px] text-slate-400">AI ผู้ช่วยแพทย์</p>
+                </div>
             </div>
-            <button onclick="toggleChat()" class="text-slate-400 hover:text-white">
-                <i data-lucide="x" class="w-5 h-5"></i>
+            <button onclick="toggleChat()" class="text-slate-400 hover:text-white bg-white/10 p-1.5 rounded-full transition-colors">
+                <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
         
         <!-- Messages Area -->
-        <div id="chat-messages" class="flex-1 p-4 overflow-y-auto bg-slate-50 flex flex-col">
+        <div id="chat-messages" class="flex-1 p-4 overflow-y-auto bg-slate-50 flex flex-col overscroll-contain">
             <!-- Intro Message -->
             <div class="chat-bubble-bot">
-                สวัสดีครับ ผมคือ AI ผู้ช่วยแพทย์ มีอะไรให้ผมช่วยแนะนำเบื้องต้นไหมครับ? (เช่น ถามอาการ, การดูแลตัวเอง)
+                สวัสดีครับ 👋 ผมคือ AI ผู้ช่วยแพทย์ <br>มีอะไรให้ผมช่วยแนะนำเบื้องต้นไหมครับ?
             </div>
         </div>
         
         <!-- Input Area -->
-        <div class="p-3 border-t border-slate-200 bg-white rounded-b-2xl">
-            <div class="flex space-x-2">
-                <input type="text" id="chat-input" class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-600" placeholder="พิมพ์ข้อความ..." onkeypress="if(event.key === 'Enter') sendChatMessage()">
-                <button onclick="sendChatMessage()" class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-colors">
-                    <i data-lucide="send" class="w-4 h-4"></i>
+        <div class="p-3 border-t border-slate-200 bg-white">
+            <div class="flex space-x-2 items-center">
+                <input type="text" id="chat-input" class="flex-1 bg-slate-100 border-0 rounded-full px-4 py-3 text-base focus:ring-2 focus:ring-blue-500 outline-none placeholder-slate-400" placeholder="พิมพ์ข้อความ..." onkeypress="if(event.key === 'Enter') sendChatMessage()">
+                <button onclick="sendChatMessage()" class="bg-blue-600 hover:bg-blue-700 text-white w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 shadow-md active:scale-95 transition-transform">
+                    <i data-lucide="send" class="w-5 h-5 ml-0.5"></i>
                 </button>
             </div>
         </div>
@@ -305,9 +332,22 @@
         // --- CHATBOT LOGIC ---
         function toggleChat() {
             const chatWindow = document.getElementById('chatbot-window');
-            chatWindow.classList.toggle('hidden');
-            if (!chatWindow.classList.contains('hidden')) {
-                document.getElementById('chat-input').focus();
+            const floatingBtn = document.getElementById('chatbot-floating-btn');
+            
+            // Toggle Hidden Classes inversely
+            const isChatHidden = chatWindow.classList.contains('hidden');
+            
+            if (isChatHidden) {
+                // Open Chat
+                chatWindow.classList.remove('hidden');
+                floatingBtn.classList.add('hidden'); // Hide floating button
+                
+                // Delay focus slightly for mobile keyboard handling
+                setTimeout(() => document.getElementById('chat-input').focus(), 100);
+            } else {
+                // Close Chat
+                chatWindow.classList.add('hidden');
+                floatingBtn.classList.remove('hidden'); // Show floating button
             }
         }
 
@@ -325,7 +365,7 @@
             // 2. Show Loading
             const loadingId = 'loading-' + Date.now();
             const loadingBubble = document.createElement('div');
-            loadingBubble.className = 'chat-bubble-bot flex items-center space-x-1';
+            loadingBubble.className = 'chat-bubble-bot flex items-center space-x-1 w-16 justify-center';
             loadingBubble.id = loadingId;
             loadingBubble.innerHTML = `<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>`;
             messagesContainer.appendChild(loadingBubble);
@@ -335,12 +375,11 @@
             const fullPrompt = `บทบาท: ผู้ช่วยแพทย์ ให้คำปรึกษาเบื้องต้น สั้นกระชับ เข้าใจง่าย ตอบเป็นกันเอง\nคำถาม: ${message}`;
 
             try {
-                // ✅ Call Worker (Same Endpoint, Mode: Chat)
                 const workerResponse = await fetch("https://pamer.tontakankeawpang321.workers.dev", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        mode: 'chat',  // ✅ Add mode
+                        mode: 'chat',
                         text: fullPrompt 
                     })
                 });
@@ -350,17 +389,14 @@
                 const data = await workerResponse.json();
                 const rawResponse = data.reply;
                 
-                // Removing Loading
                 document.getElementById(loadingId).remove();
 
-                // Simple Clean (Chat usually doesn't return JSON structure if worker is smart, but just in case)
-                let cleanText = rawResponse;
+                let cleanText = rawResponse.replace(/```json\n?|\n?```/g, '').trim();
                 try {
-                     const parsed = JSON.parse(rawResponse);
+                     const parsed = JSON.parse(cleanText);
                      if (parsed.reply) cleanText = parsed.reply;
-                } catch(e) {
-                    // It's plain text, keep it.
-                }
+                     else if (parsed.clinicalSummary) cleanText = parsed.clinicalSummary;
+                } catch(e) {}
 
                 appendChatMessage('bot', cleanText);
 
@@ -375,12 +411,13 @@
             const container = document.getElementById('chat-messages');
             const div = document.createElement('div');
             div.className = role === 'user' ? 'chat-bubble-user' : 'chat-bubble-bot';
-            div.textContent = text;
+            // Convert newlines to <br> for better formatting
+            div.innerHTML = text.replace(/\n/g, '<br>');
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
         }
 
-        // --- MAIN APP LOGIC (EXISTING) ---
+        // --- MAIN APP LOGIC ---
         let formData = {
             age: '',
             gender: 'not-specified',
@@ -408,9 +445,9 @@
             const container = document.getElementById('conditions-container');
             container.innerHTML = commonConditions.map(cond => {
                 const isSelected = formData.underlying_conditions.includes(cond);
-                const baseClass = "text-sm py-2 px-3 rounded-lg border transition-all cursor-pointer select-none font-medium";
-                const activeClass = "bg-slate-700 border-slate-700 text-white shadow-sm"; 
-                const inactiveClass = "bg-white border-slate-300 text-slate-600 hover:bg-slate-50";
+                const baseClass = "text-sm py-2.5 px-4 rounded-xl border transition-all cursor-pointer select-none font-medium flex-grow text-center sm:flex-grow-0";
+                const activeClass = "bg-slate-800 border-slate-800 text-white shadow-md transform scale-105"; 
+                const inactiveClass = "bg-white border-slate-200 text-slate-600 hover:bg-slate-50";
                 
                 return `<button onclick="toggleCondition('${cond}')" class="${baseClass} ${isSelected ? activeClass : inactiveClass}">${cond}</button>`;
             }).join('');
@@ -424,7 +461,7 @@
                     el.addEventListener('input', (e) => {
                         formData[id] = e.target.value;
                         if (id === 'pain_score') {
-                            document.getElementById('pain-score-display').textContent = e.target.value;
+                            document.getElementById('pain-score-display').textContent = `${e.target.value} / 10`;
                         }
                     });
                 }
@@ -505,7 +542,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        mode: 'triage', // ✅ Add mode
+                        mode: 'triage',
                         text: fullPrompt 
                     })
                 });
@@ -567,38 +604,44 @@
             }
 
             const diagnosisTags = result.differentialDiagnosis.map(dx => 
-                `<span class="px-3 py-1 bg-slate-50 text-slate-700 rounded-md text-sm font-medium border border-slate-200 shadow-sm">${dx}</span>`
+                `<span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium border border-slate-200 shadow-sm">${dx}</span>`
             ).join('');
 
             const lifestyleList = result.lifestyleAdvice.map(item => 
-                `<li class="flex items-start text-sm text-slate-700 mb-2">
-                    <i data-lucide="check" class="w-4 h-4 text-${themeColor}-600 mr-2 mt-0.5 flex-shrink-0"></i>
+                `<li class="flex items-start text-base text-slate-700 mb-3">
+                    <div class="bg-slate-100 p-1 rounded-full mr-3 mt-0.5">
+                        <i data-lucide="check" class="w-3.5 h-3.5 text-${themeColor}-600"></i>
+                    </div>
                     <span>${item}</span>
                 </li>`
             ).join('');
 
             const medItems = result.medicationAdvice && result.medicationAdvice.length > 0 
                 ? result.medicationAdvice.map(item => 
-                    `<li class="flex items-start text-sm text-slate-700 mb-2">
-                        <i data-lucide="pill" class="w-4 h-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0"></i>
+                    `<li class="flex items-start text-base text-slate-700 mb-3">
+                        <div class="bg-blue-100 p-1 rounded-full mr-3 mt-0.5">
+                            <i data-lucide="pill" class="w-3.5 h-3.5 text-blue-600"></i>
+                        </div>
                         <span>${item}</span>
                     </li>`
                 ).join('') : '';
 
             const redFlags = result.redFlags && result.redFlags.length > 0
                 ? result.redFlags.map(flag => 
-                    `<li class="flex items-start text-sm text-red-700 mb-2">
-                        <i data-lucide="alert-circle" class="w-4 h-4 text-red-600 mr-2 mt-0.5 flex-shrink-0"></i>
+                    `<li class="flex items-start text-base text-red-700 mb-3 font-medium">
+                        <div class="bg-red-100 p-1 rounded-full mr-3 mt-0.5">
+                            <i data-lucide="alert-circle" class="w-4 h-4 text-red-600"></i>
+                        </div>
                         <span>${flag}</span>
                     </li>`
                 ).join('') : '';
 
             container.innerHTML = `
-                <div class="bg-white rounded-xl shadow-md border-l-4 ${borderColor} overflow-hidden mb-6">
+                <div class="bg-white rounded-2xl shadow-lg border-l-8 ${borderColor} overflow-hidden mb-6">
                     <div class="p-6 border-b border-slate-100">
-                        <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center justify-between mb-3">
                             <span class="text-xs font-bold uppercase tracking-wider text-slate-400">ระดับความรุนแรง</span>
-                            <span class="px-3 py-1 rounded-full text-xs font-bold border ${badgeBg}">${result.triageLevel || 'ประเมินแล้ว'}</span>
+                            <span class="px-4 py-1.5 rounded-full text-xs font-bold border ${badgeBg}">${result.triageLevel || 'ประเมินแล้ว'}</span>
                         </div>
                         <h2 class="text-2xl font-bold text-slate-800 flex items-center">
                             <i data-lucide="${iconName}" class="w-8 h-8 text-${themeColor}-600 mr-3"></i>
@@ -606,60 +649,60 @@
                         </h2>
                     </div>
                     <div class="p-6 bg-slate-50/50">
-                        <h3 class="text-sm font-bold text-slate-900 mb-3 flex items-center">
-                            <i data-lucide="stethoscope" class="w-4 h-4 mr-2 text-slate-500"></i>
+                        <h3 class="text-base font-bold text-slate-900 mb-3 flex items-center">
+                            <i data-lucide="stethoscope" class="w-5 h-5 mr-2 text-slate-500"></i>
                             สรุปผลการวิเคราะห์
                         </h3>
-                        <p class="text-slate-700 leading-relaxed mb-4 text-sm bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                        <p class="text-slate-700 leading-relaxed mb-5 text-base bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                             ${result.clinicalSummary}
                         </p>
                         <div>
-                            <span class="text-xs font-semibold text-slate-500 block mb-2">โรคที่เข้าข่าย:</span>
+                            <span class="text-xs font-bold text-slate-400 uppercase block mb-3">โรคที่เข้าข่าย:</span>
                             <div class="flex flex-wrap gap-2">${diagnosisTags}</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden mb-6">
-                    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center">
-                        <i data-lucide="clipboard-list" class="w-5 h-5 text-slate-600 mr-2"></i>
-                        <h3 class="font-bold text-slate-800">แผนการรักษาและคำแนะนำ</h3>
+                <div class="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden mb-6">
+                    <div class="px-6 py-5 border-b border-slate-100 bg-slate-50 flex items-center">
+                        <i data-lucide="clipboard-list" class="w-6 h-6 text-slate-600 mr-3"></i>
+                        <h3 class="font-bold text-lg text-slate-800">แผนการรักษา</h3>
                     </div>
                     
-                    <div class="p-6 space-y-6">
+                    <div class="p-6 space-y-8">
                         <div>
-                            <h4 class="text-sm font-bold text-${themeColor}-700 mb-2 flex items-center">
-                                <i data-lucide="zap" class="w-4 h-4 mr-2"></i>
+                            <h4 class="text-base font-bold text-${themeColor}-700 mb-3 flex items-center">
+                                <i data-lucide="zap" class="w-5 h-5 mr-2"></i>
                                 สิ่งที่ควรทำทันที
                             </h4>
-                            <div class="bg-${themeColor}-50 p-4 rounded-lg border border-${themeColor}-100 text-sm text-${themeColor}-900 font-medium leading-relaxed">
+                            <div class="bg-${themeColor}-50 p-5 rounded-xl border border-${themeColor}-100 text-base text-${themeColor}-900 font-medium leading-relaxed shadow-sm">
                                 ${result.immediateAction}
                             </div>
                         </div>
 
                         <div>
-                            <h4 class="text-sm font-bold text-slate-700 mb-2">การดูแลตนเอง</h4>
+                            <h4 class="text-base font-bold text-slate-800 mb-3">การดูแลตนเอง</h4>
                             <ul class="list-none">${lifestyleList}</ul>
                         </div>
 
                         ${medItems ? `
                         <div>
-                            <h4 class="text-sm font-bold text-slate-700 mb-2">ยาบรรเทาอาการ</h4>
-                            <ul class="list-none bg-blue-50/50 p-4 rounded-lg border border-blue-100">${medItems}</ul>
+                            <h4 class="text-base font-bold text-slate-800 mb-3">ยาบรรเทาอาการ</h4>
+                            <ul class="list-none bg-blue-50/50 p-5 rounded-xl border border-blue-100">${medItems}</ul>
                         </div>` : ''}
                     </div>
                 </div>
 
                 ${redFlags ? `
-                <div class="bg-red-50 rounded-xl shadow-sm border border-red-200 overflow-hidden mb-6">
-                    <div class="px-6 py-4 border-b border-red-100 flex items-center text-red-800">
-                        <i data-lucide="siren" class="w-5 h-5 mr-2"></i>
-                        <h3 class="font-bold">สัญญาณอันตราย (Red Flags)</h3>
+                <div class="bg-red-50 rounded-2xl shadow-md border border-red-200 overflow-hidden mb-6">
+                    <div class="px-6 py-5 border-b border-red-100 flex items-center text-red-800 bg-red-100/50">
+                        <i data-lucide="siren" class="w-6 h-6 mr-3"></i>
+                        <h3 class="font-bold text-lg">สัญญาณอันตราย (Red Flags)</h3>
                     </div>
                     <div class="p-6">
-                        <p class="text-xs text-red-600 mb-3 font-medium">หากมีอาการดังต่อไปนี้ โปรดไปพบแพทย์ทันที:</p>
+                        <p class="text-sm text-red-600 mb-4 font-semibold">หากมีอาการดังต่อไปนี้ โปรดไปพบแพทย์ทันที:</p>
                         <ul class="list-none space-y-1">${redFlags}</ul>
-                        ${result.doctorVisitCriteria ? `<div class="mt-4 pt-4 border-t border-red-200 text-xs font-semibold text-red-800 flex items-center"><i data-lucide="clock" class="w-3 h-3 mr-1"></i> ${result.doctorVisitCriteria}</div>` : ''}
+                        ${result.doctorVisitCriteria ? `<div class="mt-6 pt-5 border-t border-red-200 text-sm font-semibold text-red-800 flex items-start bg-white/50 p-4 rounded-lg"><i data-lucide="clock" class="w-5 h-5 mr-2 flex-shrink-0 mt-0.5"></i> ${result.doctorVisitCriteria}</div>` : ''}
                     </div>
                 </div>` : ''}
             `;

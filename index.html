@@ -23,7 +23,6 @@
             -webkit-tap-highlight-color: transparent;
         }
         
-        /* ป้องกัน Font ขยายเองบน iOS */
         input, select, textarea, button {
             font-size: 16px !important;
         }
@@ -37,60 +36,47 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .spin-slow {
-            animation: spin 3s linear infinite;
-        }
-        
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        input[type=range] { -webkit-appearance: none; background: transparent; }
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 24px; width: 24px; /* ใหญ่ขึ้นสำหรับนิ้ว */
-            border-radius: 50%;
-            background: #1e293b;
-            cursor: pointer; margin-top: -10px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        .modal-active {
+            display: flex !important;
+            animation: fadeIn 0.2s ease-out;
         }
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%; height: 6px;
-            cursor: pointer; background: #cbd5e1;
-            border-radius: 3px;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
-        input[type=range]:focus { outline: none; }
 
-        /* Chatbot Styles */
+        .benefit-scroll::-webkit-scrollbar { width: 4px; }
+        .benefit-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+        .benefit-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        /* Chat Bubbles */
         .chat-bubble-user {
             background-color: #1e293b;
             color: white;
             border-radius: 16px 16px 2px 16px;
-            padding: 12px 16px;
+            padding: 10px 14px;
             max-width: 85%;
             align-self: flex-end;
-            margin-bottom: 10px;
+            font-size: 14px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            font-size: 0.95rem;
         }
         .chat-bubble-bot {
             background-color: white;
             color: #1e293b;
             border: 1px solid #e2e8f0;
             border-radius: 16px 16px 16px 2px;
-            padding: 12px 16px;
+            padding: 10px 14px;
             max-width: 85%;
             align-self: flex-start;
-            margin-bottom: 10px;
+            font-size: 14px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            font-size: 0.95rem;
         }
+
         .typing-dot {
-            width: 6px; height: 6px;
+            width: 5px; height: 5px;
             background: #94a3b8;
             border-radius: 50%;
             animation: typing 1.4s infinite ease-in-out both;
@@ -100,6 +86,21 @@
         @keyframes typing {
             0%, 80%, 100% { transform: scale(0); }
             40% { transform: scale(1); }
+        }
+
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px; width: 24px; 
+            border-radius: 50%;
+            background: #1e293b;
+            cursor: pointer; margin-top: -10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 6px;
+            cursor: pointer; background: #cbd5e1;
+            border-radius: 3px;
         }
     </style>
 </head>
@@ -117,14 +118,14 @@
                     <p class="text-xs text-slate-400 mt-0.5">ระบบคัดกรองสุขภาพ</p>
                 </div>
             </div>
-            <div class="text-[10px] text-slate-400 font-medium border border-slate-700 px-2 py-1 rounded bg-slate-800">
-                AI Powered
-            </div>
+            <button onclick="openRightsModal()" class="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold py-1.5 px-3 rounded-full shadow-lg transition-all active:scale-95 border border-blue-400/30">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 animate-pulse"></i>
+                <span>สิทธิบัตรทอง (AI)</span>
+            </button>
         </div>
     </header>
 
     <main class="max-w-xl mx-auto px-4 mt-6">
-        
         <!-- STEP 1: INPUT FORM -->
         <div id="step-input" class="fade-in-up">
             <div class="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
@@ -139,42 +140,37 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div class="col-span-1">
                             <label class="text-sm font-bold text-slate-700 mb-2 block">อายุ (ปี)</label>
-                            <input type="number" id="age" class="w-full h-12 px-4 rounded-xl border border-slate-300 bg-white focus:bg-white focus:border-blue-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder-slate-400" placeholder="ระบุ">
+                            <input type="number" id="age" class="w-full h-12 px-4 rounded-xl border border-slate-300 bg-white focus:border-blue-800 outline-none transition-all" placeholder="ระบุ">
                         </div>
                         <div class="col-span-1">
                             <label class="text-sm font-bold text-slate-700 mb-2 block">เพศ</label>
-                            <div class="relative">
-                                <select id="gender" class="w-full h-12 px-4 rounded-xl border border-slate-300 bg-white focus:border-blue-800 focus:ring-2 focus:ring-blue-100 outline-none appearance-none">
-                                    <option value="not-specified">ระบุ...</option>
-                                    <option value="male">ชาย</option>
-                                    <option value="female">หญิง</option>
-                                </select>
-                                <i data-lucide="chevron-down" class="absolute right-3 top-3.5 w-5 h-5 text-slate-400 pointer-events-none"></i>
-                            </div>
+                            <select id="gender" class="w-full h-12 px-4 rounded-xl border border-slate-300 bg-white outline-none appearance-none">
+                                <option value="not-specified">ระบุ...</option>
+                                <option value="male">ชาย</option>
+                                <option value="female">หญิง</option>
+                            </select>
                         </div>
                         <div class="col-span-2 sm:col-span-1">
                             <label class="text-sm font-bold text-slate-700 mb-2 block">อุณหภูมิร่างกาย</label>
                             <div class="relative">
-                                <select id="temperature" class="w-full h-12 pl-10 pr-8 rounded-xl border border-slate-300 bg-white focus:border-blue-800 focus:ring-2 focus:ring-blue-100 outline-none appearance-none">
+                                <select id="temperature" class="w-full h-12 pl-10 pr-8 rounded-xl border border-slate-300 bg-white outline-none appearance-none">
                                     <option value="normal">ปกติ (ไม่ตัวร้อน)</option>
                                     <option value="warm">ตัวรุมๆ (มีไข้ต่ำ)</option>
                                     <option value="hot">ตัวร้อนจัด (ไข้สูง)</option>
                                 </select>
-                                <i data-lucide="thermometer" class="absolute left-3 top-3.5 w-5 h-5 text-slate-400 pointer-events-none"></i>
-                                <i data-lucide="chevron-down" class="absolute right-3 top-3.5 w-5 h-5 text-slate-400 pointer-events-none"></i>
+                                <i data-lucide="thermometer" class="absolute left-3 top-3.5 w-5 h-5 text-slate-400"></i>
                             </div>
                         </div>
                         <div class="col-span-2 sm:col-span-1">
                             <label class="text-sm font-bold text-slate-700 mb-2 block">ความดันโลหิต</label>
                             <div class="relative">
-                                <select id="pressure" class="w-full h-12 pl-10 pr-8 rounded-xl border border-slate-300 bg-white focus:border-blue-800 focus:ring-2 focus:ring-blue-100 outline-none appearance-none">
+                                <select id="pressure" class="w-full h-12 pl-10 pr-8 rounded-xl border border-slate-300 bg-white outline-none appearance-none">
                                     <option value="unknown">ไม่ทราบ</option>
                                     <option value="normal">ปกติ</option>
                                     <option value="low">ต่ำ (หน้ามืดบ่อย)</option>
                                     <option value="high">สูง (ปวดหัว)</option>
                                 </select>
-                                <i data-lucide="activity" class="absolute left-3 top-3.5 w-5 h-5 text-slate-400 pointer-events-none"></i>
-                                <i data-lucide="chevron-down" class="absolute right-3 top-3.5 w-5 h-5 text-slate-400 pointer-events-none"></i>
+                                <i data-lucide="activity" class="absolute left-3 top-3.5 w-5 h-5 text-slate-400"></i>
                             </div>
                         </div>
                     </div>
@@ -182,21 +178,21 @@
                     <div>
                         <label class="text-sm font-bold text-slate-700 mb-2 block">โรคประจำตัว (เลือกได้มากกว่า 1)</label>
                         <div class="flex flex-wrap gap-2 mb-3" id="conditions-container"></div>
-                        <input type="text" id="allergies" placeholder="ประวัติแพ้ยา / อาหาร (ระบุถ้ามี)" class="w-full h-12 px-4 rounded-xl border border-slate-300 bg-white focus:border-blue-800 focus:ring-2 focus:ring-blue-100 outline-none placeholder-slate-400">
+                        <input type="text" id="allergies" placeholder="ประวัติแพ้ยา / อาหาร (ระบุถ้ามี)" class="w-full h-12 px-4 rounded-xl border border-slate-300 bg-white focus:border-blue-800 outline-none">
                     </div>
 
-                    <div class="border-t border-slate-200 my-2"></div>
+                    <div class="border-t border-slate-200"></div>
 
                     <div>
                         <label class="text-sm font-bold text-slate-700 mb-2 block">อาการที่เป็น *</label>
-                        <textarea id="symptoms" rows="3" placeholder="อธิบายอาการ เช่น ปวดท้องขวาล่าง, ไอแห้งๆ, อ่อนเพลีย..." class="w-full p-4 rounded-xl border border-slate-300 bg-white focus:border-blue-800 focus:ring-2 focus:ring-blue-100 outline-none resize-none leading-relaxed"></textarea>
+                        <textarea id="symptoms" rows="3" placeholder="อธิบายอาการ เช่น ปวดท้อง, ไอ, อ่อนเพลีย..." class="w-full p-4 rounded-xl border border-slate-300 bg-white focus:border-blue-800 outline-none resize-none leading-relaxed"></textarea>
 
                         <div class="flex flex-col gap-5 mt-5">
                             <div>
                                 <label class="text-sm font-bold text-slate-700 mb-2 block">เป็นมานานเท่าไร</label>
-                                <div class="flex shadow-sm rounded-xl overflow-hidden">
-                                    <input type="number" id="duration" class="w-full h-12 px-4 border border-r-0 border-slate-300 bg-white focus:border-blue-800 focus:ring-1 focus:ring-blue-800 outline-none z-10 rounded-l-xl" placeholder="ตัวเลข">
-                                    <select id="duration_unit" class="h-12 px-4 border border-l-0 border-slate-300 bg-slate-50 text-slate-700 outline-none rounded-r-xl font-medium min-w-[90px]">
+                                <div class="flex rounded-xl overflow-hidden shadow-sm">
+                                    <input type="number" id="duration" class="w-full h-12 px-4 border border-r-0 border-slate-300 outline-none" placeholder="ตัวเลข">
+                                    <select id="duration_unit" class="h-12 px-4 border border-l-0 border-slate-300 bg-slate-50 text-slate-700 outline-none font-medium min-w-[90px]">
                                         <option value="วัน">วัน</option>
                                         <option value="ชั่วโมง">ชม.</option>
                                         <option value="สัปดาห์">wk</option>
@@ -212,228 +208,110 @@
                                 <div class="h-12 flex items-center px-4 border border-slate-300 rounded-xl bg-slate-50">
                                     <input type="range" id="pain_score" min="0" max="10" step="1" value="5" class="w-full">
                                 </div>
-                                <div class="flex justify-between text-xs text-slate-400 mt-1 px-1">
-                                    <span>ไม่เจ็บ</span>
-                                    <span>ปานกลาง</span>
-                                    <span>เจ็บมาก</span>
-                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <button onclick="analyzeSymptoms()" class="w-full mt-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-lg py-4 rounded-xl shadow-lg shadow-slate-300 transition-all active:scale-[0.98] flex items-center justify-center space-x-3">
-                        <span>เริ่มประเมินผล</span>
-                        <div class="bg-white/20 rounded-full p-1">
-                            <i data-lucide="arrow-right" class="w-5 h-5"></i>
-                        </div>
+                    <button onclick="analyzeSymptoms()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 flex items-center justify-center space-x-2 transition-all">
+                        <span>เริ่มประเมินอาการ</span>
+                        <i data-lucide="arrow-right" class="w-5 h-5"></i>
                     </button>
-                    
-                    <p class="text-center text-xs text-slate-400 mt-2">
-                        * เป็นคำแนะนำเบื้องต้น ไม่สามารถทดแทนการวินิจฉัยโดยแพทย์
-                    </p>
                 </div>
             </div>
         </div>
 
         <!-- STEP 2: LOADING -->
-        <div id="step-loading" class="hidden h-[60vh] flex flex-col items-center justify-center text-center fade-in-up bg-white rounded-2xl border border-slate-200 shadow-sm mx-4">
-            <div class="relative mb-8">
-                <div class="w-20 h-20 border-[6px] border-slate-100 border-t-blue-800 rounded-full spin-slow"></div>
-                <div class="absolute inset-0 m-auto flex items-center justify-center">
-                    <i data-lucide="loader-2" class="w-8 h-8 text-blue-800 animate-pulse"></i>
-                </div>
-            </div>
-            <h3 class="text-xl font-bold text-slate-800">กำลังประมวลผล...</h3>
-            <p class="text-base text-slate-500 mt-2 px-6">AI กำลังวิเคราะห์อาการของคุณ<br>โปรดรอสักครู่</p>
+        <div id="step-loading" class="hidden h-[40vh] flex flex-col items-center justify-center text-center fade-in-up">
+            <div class="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+            <h3 class="text-lg font-bold text-slate-700">AI กำลังวิเคราะห์ข้อมูลสุขภาพ...</h3>
         </div>
 
         <!-- STEP 3: RESULT -->
         <div id="step-result" class="hidden fade-in-up pb-10">
             <div id="result-container"></div>
-            
-            <div class="mt-6 bg-slate-900 text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
-                <div class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
-                    <i data-lucide="hospital" class="w-48 h-48 text-white"></i>
-                </div>
-                
-                <div class="relative z-10">
-                    <div class="flex items-start justify-between mb-6">
-                        <div>
-                            <div class="text-xs text-slate-400 uppercase tracking-widest font-semibold mb-2">คำแนะนำการส่งต่อ</div>
-                            <div class="text-sm opacity-90 mb-1">แผนกแพทย์ที่แนะนำ:</div>
-                            <div id="referral-dept" class="text-3xl font-bold text-blue-300 tracking-tight leading-tight">-</div>
-                        </div>
-                    </div>
-                    
-                    <button onclick="resetForm()" class="w-full bg-white text-slate-900 font-bold py-4 rounded-xl hover:bg-slate-100 transition-colors flex items-center justify-center space-x-2 shadow-lg active:scale-95">
-                        <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
-                        <span>ประเมินอาการใหม่</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Error Notification -->
-        <div id="error-toast" class="hidden fixed bottom-24 left-4 right-4 bg-red-100 border-l-4 border-red-600 text-red-900 px-5 py-4 rounded-xl shadow-2xl z-50 text-sm font-medium flex items-center animate-bounce-in">
-            <i data-lucide="alert-circle" class="w-6 h-6 mr-3 text-red-600 flex-shrink-0"></i>
-            <span id="error-message" class="flex-1">Error</span>
-            <button onclick="document.getElementById('error-toast').classList.add('hidden')" class="ml-4 p-2 bg-red-200 rounded-full text-red-700">✕</button>
-        </div>
-
-    </main>
-
-    <!-- FLOATING CHATBOT BUTTON -->
-    <button id="chatbot-floating-btn" onclick="toggleChat()" class="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 bg-slate-900 hover:bg-slate-800 text-white w-14 h-14 rounded-full shadow-2xl transition-all z-40 hover:scale-110 active:scale-90 flex items-center justify-center border-2 border-white/20">
-        <i data-lucide="message-circle" class="w-7 h-7"></i>
-    </button>
-
-    <!-- CHATBOT WINDOW (Mobile Optimized) -->
-    <!-- Changed position from bottom-24 to bottom-4 for better mobile usage when button is hidden -->
-    <div id="chatbot-window" class="fixed bottom-4 right-4 left-4 sm:left-auto sm:right-8 sm:w-[380px] h-[60vh] sm:h-[550px] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col hidden z-50 animate-in fade-in slide-in-from-bottom-5 duration-300 overflow-hidden">
-        <!-- Header -->
-        <div class="bg-slate-900 p-4 flex justify-between items-center shadow-md">
-            <div class="flex items-center space-x-3">
-                <div class="relative">
-                    <div class="bg-blue-600 p-1.5 rounded-full">
-                        <i data-lucide="bot" class="w-5 h-5 text-white"></i>
-                    </div>
-                    <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-900"></div>
-                </div>
-                <div>
-                    <h3 class="text-white font-bold text-sm leading-tight">MediBot</h3>
-                    <p class="text-[10px] text-slate-400">AI ผู้ช่วยแพทย์</p>
-                </div>
-            </div>
-            <button onclick="toggleChat()" class="text-slate-400 hover:text-white bg-white/10 p-1.5 rounded-full transition-colors">
-                <i data-lucide="x" class="w-4 h-4"></i>
+            <button onclick="resetForm()" class="w-full mt-6 bg-white border-2 border-slate-900 text-slate-900 font-bold py-4 rounded-xl flex items-center justify-center space-x-2 hover:bg-slate-50 transition-colors shadow-sm">
+                <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                <span>ประเมินอาการใหม่</span>
             </button>
         </div>
-        
-        <!-- Messages Area -->
-        <div id="chat-messages" class="flex-1 p-4 overflow-y-auto bg-slate-50 flex flex-col overscroll-contain">
-            <!-- Intro Message -->
-            <div class="chat-bubble-bot">
-                สวัสดีครับ 👋 ผมคือ AI ผู้ช่วยแพทย์ <br>มีอะไรให้ผมช่วยแนะนำเบื้องต้นไหมครับ?
+    </main>
+
+    <!-- RIGHTS MODAL (Gold Card Benefits - FULL LIST) -->
+    <div id="rights-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onclick="closeRightsModal()"></div>
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="bg-blue-600 p-6 text-white text-center flex-shrink-0 relative">
+                <button onclick="closeRightsModal()" class="absolute right-4 top-4 text-white/60 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+                <div class="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="shield-check" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-xl font-bold">สิทธิประโยชน์บัตรทอง (ครบวงจร)</h3>
+                <p class="text-blue-100 text-xs opacity-90">รวบรวมทุกสิทธิรักษาฟรีอัปเดต AI ประจำปี 2569</p>
             </div>
-        </div>
-        
-        <!-- Input Area -->
-        <div class="p-3 border-t border-slate-200 bg-white">
-            <div class="flex space-x-2 items-center">
-                <input type="text" id="chat-input" class="flex-1 bg-slate-100 border-0 rounded-full px-4 py-3 text-base focus:ring-2 focus:ring-blue-500 outline-none placeholder-slate-400" placeholder="พิมพ์ข้อความ..." onkeypress="if(event.key === 'Enter') sendChatMessage()">
-                <button onclick="sendChatMessage()" class="bg-blue-600 hover:bg-blue-700 text-white w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 shadow-md active:scale-95 transition-transform">
-                    <i data-lucide="send" class="w-5 h-5 ml-0.5"></i>
+            <div class="bg-blue-50 px-6 py-2 border-b border-blue-100 flex justify-between items-center text-[11px] font-bold text-blue-700 uppercase tracking-wider flex-shrink-0">
+                <div class="flex items-center"><i data-lucide="clock" class="w-3 h-3 mr-1"></i> <span id="last-update-text">ล่าสุด: 26 ม.ค. 69</span></div>
+                <div id="ai-indicator" class="flex items-center text-green-600"><i data-lucide="check-circle" class="w-3 h-3 mr-1"></i> AI Verified</div>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50 benefit-scroll" id="benefits-list"></div>
+            <div class="p-5 bg-white border-t border-slate-100 flex-shrink-0">
+                <button id="btn-refresh-ai" onclick="updateBenefitsWithAI()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg transition-all active:scale-95 flex items-center justify-center space-x-2">
+                    <i data-lucide="refresh-cw" class="w-5 h-5" id="refresh-icon"></i>
+                    <span>อัปเดตสิทธิรักษาฟรีวันนี้</span>
                 </button>
             </div>
         </div>
     </div>
 
+    <!-- CHATBOT WINDOW -->
+    <div id="chatbot-window" class="fixed bottom-24 right-4 left-4 sm:left-auto sm:right-8 sm:w-[360px] h-[60vh] sm:h-[500px] bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col hidden z-50 animate-in fade-in slide-in-from-bottom-5 duration-300 overflow-hidden">
+        <div class="bg-slate-900 p-4 flex justify-between items-center text-white">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-600 p-2 rounded-full"><i data-lucide="bot" class="w-5 h-5"></i></div>
+                <div>
+                    <h3 class="font-bold text-sm">MediBot AI</h3>
+                    <p class="text-[10px] text-slate-400">ผู้ช่วยส่วนตัวของคุณ</p>
+                </div>
+            </div>
+            <button onclick="toggleChat()" class="p-1 hover:bg-white/10 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div id="chat-messages" class="flex-1 p-4 overflow-y-auto bg-slate-50 flex flex-col space-y-3 no-scrollbar scroll-smooth">
+            <div class="chat-bubble-bot">สวัสดีครับ! ผมคือ MediBot 🤖 มีข้อสงสัยเรื่องอาการป่วยหรือสิทธิรักษาบัตรทอง สอบถามได้เลยครับ</div>
+        </div>
+        <div class="p-4 bg-white border-t border-slate-100">
+            <div class="flex space-x-2">
+                <input type="text" id="chat-input" class="flex-1 bg-slate-100 rounded-2xl px-4 py-3 text-sm outline-none" placeholder="พิมพ์ข้อความที่นี่..." onkeypress="if(event.key === 'Enter') sendChatMessage()">
+                <button onclick="sendChatMessage()" class="bg-blue-600 text-white p-3 rounded-2xl shadow-md active:scale-95"><i data-lucide="send" class="w-5 h-5"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FLOATING CHATBOT BUTTON -->
+    <button id="chatbot-floating-btn" onclick="toggleChat()" class="fixed bottom-6 right-6 bg-slate-900 hover:bg-slate-800 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center z-40 transition-transform active:scale-90 border-2 border-white/20">
+        <i data-lucide="message-circle" class="w-7 h-7"></i>
+    </button>
+
     <script>
-        // --- CHATBOT LOGIC ---
-        function toggleChat() {
-            const chatWindow = document.getElementById('chatbot-window');
-            const floatingBtn = document.getElementById('chatbot-floating-btn');
-            
-            // Toggle Hidden Classes inversely
-            const isChatHidden = chatWindow.classList.contains('hidden');
-            
-            if (isChatHidden) {
-                // Open Chat
-                chatWindow.classList.remove('hidden');
-                floatingBtn.classList.add('hidden'); // Hide floating button
-                
-                // Delay focus slightly for mobile keyboard handling
-                setTimeout(() => document.getElementById('chat-input').focus(), 100);
-            } else {
-                // Close Chat
-                chatWindow.classList.add('hidden');
-                floatingBtn.classList.remove('hidden'); // Show floating button
-            }
-        }
+        const allGoldCardBenefits = [
+            { icon: 'ambulance', color: 'red', title: 'UCEP: ฉุกเฉินวิกฤต มีสิทธิทุกที่', desc: 'รักษาฟรี 72 ชม. แรกใน รพ. ที่ใกล้ที่สุด (รัฐและเอกชน) หากเจ็บป่วยฉุกเฉินวิกฤตถึงแก่ชีวิต' },
+            { icon: 'stethoscope', color: 'blue', title: 'ตรวจและรักษาโรคทั่วไปฟรี', desc: 'ครอบคลุมค่ารักษาพยาบาล ค่ายา ค่าเวชภัณฑ์ และค่าห้องสามัญในโรงพยาบาลตามสิทธิ' },
+            { icon: 'pill', color: 'green', title: 'รับยาที่ร้านยาใกล้บ้านฟรี', desc: 'ครอบคลุม 16 อาการเจ็บป่วยเล็กน้อย ปรึกษาเภสัชกรและรับยาได้ทันทีไม่ต้องไป รพ.' },
+            { icon: 'heart-pulse', color: 'red', title: 'ล้างไต / ฟอกไตฟรี', desc: 'ฟรีค่าล้างไตผ่านทางหน้าท้อง (แบบธรรมดาและอัตโนมัติ) และการฟอกเลือดด้วยเครื่องไตเทียม' },
+            { icon: 'smile', color: 'indigo', title: 'ทันตกรรมครบวงจรฟรี', desc: 'ถอนฟัน, อุดฟัน, ขูดหินปูน, ผ่าฟันคุด, เคลือบฟลูออไรด์ และทำฟันเทียม' },
+            { icon: 'baby', color: 'pink', title: 'บริการแม่และเด็กฟรี', desc: 'ฝากครรภ์คุณภาพ, คลอดบุตรฟรี, ตรวจคัดกรองโรคพันธุกรรมในเด็กแรกเกิด และวัคซีนพื้นฐาน' },
+            { icon: 'microscope', color: 'purple', title: 'คัดกรองมะเร็งฟรี', desc: 'มะเร็งปากมดลูก (HPV DNA), มะเร็งลำไส้ใหญ่, มะเร็งเต้านม และมะเร็งช่องปาก' },
+            { icon: 'video', color: 'teal', title: 'พบแพทย์ทางไกล (Telemedicine)', desc: 'ปรึกษาแพทย์ผ่านแอปฯ สำหรับโรคทั่วไป พร้อมบริการส่งยาถึงบ้านฟรี' },
+            { icon: 'shield-plus', color: 'blue', title: 'ตรวจสุขภาพและป้องกันโรค', desc: 'ตรวจความดัน เบาหวาน ไขมันในเลือด และรับยาคุมกำเนิด ถุงยางอนามัย ฟรี' },
+            { icon: 'user-check', color: 'slate', title: 'การฟื้นฟูสมรรถภาพ', desc: 'บริการกายภาพบำบัด กิจกรรมบำบัด และอุปกรณ์สำหรับผู้พิการหรือผู้ป่วยติดเตียง' }
+        ];
 
-        async function sendChatMessage() {
-            const input = document.getElementById('chat-input');
-            const message = input.value.trim();
-            const messagesContainer = document.getElementById('chat-messages');
-
-            if (!message) return;
-
-            // 1. Show User Message
-            appendChatMessage('user', message);
-            input.value = '';
-
-            // 2. Show Loading
-            const loadingId = 'loading-' + Date.now();
-            const loadingBubble = document.createElement('div');
-            loadingBubble.className = 'chat-bubble-bot flex items-center space-x-1 w-16 justify-center';
-            loadingBubble.id = loadingId;
-            loadingBubble.innerHTML = `<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>`;
-            messagesContainer.appendChild(loadingBubble);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-            // 3. Prepare Payload (MODE: CHAT)
-            const fullPrompt = `บทบาท: ผู้ช่วยแพทย์ ให้คำปรึกษาเบื้องต้น สั้นกระชับ เข้าใจง่าย ตอบเป็นกันเอง\nคำถาม: ${message}`;
-
-            try {
-                const workerResponse = await fetch("https://pamer.tontakankeawpang321.workers.dev", {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        mode: 'chat',
-                        text: fullPrompt 
-                    })
-                });
-
-                if (!workerResponse.ok) throw new Error("Connection failed");
-
-                const data = await workerResponse.json();
-                const rawResponse = data.reply;
-                
-                document.getElementById(loadingId).remove();
-
-                let cleanText = rawResponse.replace(/```json\n?|\n?```/g, '').trim();
-                try {
-                     const parsed = JSON.parse(cleanText);
-                     if (parsed.reply) cleanText = parsed.reply;
-                     else if (parsed.clinicalSummary) cleanText = parsed.clinicalSummary;
-                } catch(e) {}
-
-                appendChatMessage('bot', cleanText);
-
-            } catch (err) {
-                console.error(err);
-                document.getElementById(loadingId).remove();
-                appendChatMessage('bot', 'ขออภัยครับ ระบบขัดข้องชั่วคราว');
-            }
-        }
-
-        function appendChatMessage(role, text) {
-            const container = document.getElementById('chat-messages');
-            const div = document.createElement('div');
-            div.className = role === 'user' ? 'chat-bubble-user' : 'chat-bubble-bot';
-            // Convert newlines to <br> for better formatting
-            div.innerHTML = text.replace(/\n/g, '<br>');
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        // --- MAIN APP LOGIC ---
-        let formData = {
-            age: '',
-            gender: 'not-specified',
-            temperature: 'normal',
-            pressure: 'unknown',
-            underlying_conditions: [],
-            allergies: '',
-            symptoms: '',
-            pain_score: 5,
-            duration: '',
-            duration_unit: 'วัน'
+        let formData = { 
+            age: '', gender: 'not-specified', temperature: 'normal', pressure: 'unknown', 
+            underlying_conditions: [], allergies: '', symptoms: '', pain_score: 5, duration: '', duration_unit: 'วัน' 
         };
 
-        const commonConditions = [
-            "เบาหวาน", "ความดันสูง", "ไขมันสูง", "โรคหัวใจ", "หอบหืด", "โรคไต"
-        ];
+        const commonConditions = ["เบาหวาน", "ความดันสูง", "ไขมันสูง", "โรคหัวใจ", "หอบหืด"];
 
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
@@ -445,298 +323,198 @@
             const container = document.getElementById('conditions-container');
             container.innerHTML = commonConditions.map(cond => {
                 const isSelected = formData.underlying_conditions.includes(cond);
-                const baseClass = "text-sm py-2.5 px-4 rounded-xl border transition-all cursor-pointer select-none font-medium flex-grow text-center sm:flex-grow-0";
-                const activeClass = "bg-slate-800 border-slate-800 text-white shadow-md transform scale-105"; 
+                const baseClass = "text-xs py-2 px-4 rounded-xl border transition-all cursor-pointer select-none font-medium";
+                const activeClass = "bg-slate-800 border-slate-800 text-white shadow-md"; 
                 const inactiveClass = "bg-white border-slate-200 text-slate-600 hover:bg-slate-50";
-                
                 return `<button onclick="toggleCondition('${cond}')" class="${baseClass} ${isSelected ? activeClass : inactiveClass}">${cond}</button>`;
             }).join('');
         }
 
         function setupEventListeners() {
-            const inputs = ['age', 'gender', 'temperature', 'pressure', 'allergies', 'symptoms', 'duration', 'duration_unit', 'pain_score'];
-            inputs.forEach(id => {
+            const fields = ['age', 'gender', 'temperature', 'pressure', 'allergies', 'symptoms', 'duration', 'duration_unit', 'pain_score'];
+            fields.forEach(id => {
                 const el = document.getElementById(id);
-                if (el) {
-                    el.addEventListener('input', (e) => {
-                        formData[id] = e.target.value;
-                        if (id === 'pain_score') {
-                            document.getElementById('pain-score-display').textContent = `${e.target.value} / 10`;
-                        }
-                    });
-                }
+                if (el) el.addEventListener('input', (e) => {
+                    formData[id] = e.target.value;
+                    if (id === 'pain_score') document.getElementById('pain-score-display').textContent = `${e.target.value} / 10`;
+                });
             });
         }
 
-        function toggleCondition(condition) {
-            if (formData.underlying_conditions.includes(condition)) {
-                formData.underlying_conditions = formData.underlying_conditions.filter(c => c !== condition);
-            } else {
-                formData.underlying_conditions.push(condition);
-            }
+        function toggleCondition(cond) {
+            formData.underlying_conditions = formData.underlying_conditions.includes(cond) ? formData.underlying_conditions.filter(c => c !== cond) : [...formData.underlying_conditions, cond];
             renderConditions();
         }
 
-        function parseAIResponse(text) {
-            let cleanText = text.replace(/```json\n?|\n?```/g, '').trim();
-            try {
-                return JSON.parse(cleanText);
-            } catch (e) {
-                const firstBrace = cleanText.indexOf('{');
-                const lastBrace = cleanText.lastIndexOf('}');
-                if (firstBrace !== -1 && lastBrace !== -1) {
-                    const jsonString = cleanText.substring(firstBrace, lastBrace + 1);
-                    return JSON.parse(jsonString);
-                }
-                throw e;
-            }
-        }
-
         async function analyzeSymptoms() {
-            if (!formData.symptoms || !formData.age) {
-                alert('กรุณากรอกข้อมูลสำคัญ: อายุ และ อาการที่เป็น');
-                return;
-            }
-
+            if (!formData.symptoms || !formData.age) return alert('กรุณาระบุอายุและอาการของคุณ');
             setStep('loading');
 
-            const systemPrompt = `บทบาท: คุณคือ AI ทางการแพทย์ที่ทำหน้าที่คัดกรองผู้ป่วยเบื้องต้น (Medical Triage)
-            คำสั่ง: วิเคราะห์ข้อมูลผู้ป่วยที่ได้รับ และประเมินความเร่งด่วน รวมถึงให้คำแนะนำการรักษา
-            ข้อกำหนดการตอบกลับ:
-            1. ตอบเป็น JSON เท่านั้น
-            2. ใช้ภาษาไทยที่ "เข้าใจง่าย" "สุภาพ" และ "จริงจัง"
-            3. โทนเสียง: เป็นผู้เชี่ยวชาญ น่าเชื่อถือ
-            
-            โครงสร้าง JSON ที่ต้องการ:
-            {
-              "triageLevel": "ไม่เร่งด่วน" | "เร่งด่วน" | "ฉุกเฉิน",
-              "triageColor": "green" | "yellow" | "red",
-              "clinicalSummary": "สรุปอาการและสาเหตุที่เป็นไปได้",
-              "differentialDiagnosis": ["โรคที่อาจเป็นไปได้ 1"],
-              "immediateAction": "การรักษาเบื้องต้นที่ทำได้ทันที",
-              "lifestyleAdvice": ["คำแนะนำการดูแลตัวเอง"],
-              "medicationAdvice": ["ชื่อยาที่แนะนำ (เช่น ยาสามัญประจำบ้าน)"],
-              "redFlags": ["สัญญาณอันตราย"],
-              "doctorVisitCriteria": "ควรไปพบแพทย์เมื่อไร",
-              "departmentReferral": "แผนกแพทย์ที่ควรไปพบ"
-            }`;
+            const fullPrompt = `คุณคือ AI ผู้ช่วยแพทย์ทำหน้าที่คัดกรองอาการ (Medical Triage)
+ข้อมูลคนไข้: อายุ ${formData.age}, เพศ ${formData.gender}, อุณหภูมิ ${formData.temperature}, ความดัน ${formData.pressure}, โรคประจำตัว ${formData.underlying_conditions.join(',') || 'ไม่มี'}, แพ้ยา ${formData.allergies || 'ไม่มี'}, อาการ ${formData.symptoms}, ระดับความเจ็บ ${formData.pain_score}/10, เป็นมานาน ${formData.duration} ${formData.duration_unit}. 
 
-            const tempMap = { 'normal': 'ปกติ', 'warm': 'ตัวรุมๆ (ไข้ต่ำ)', 'hot': 'ตัวร้อนจัด (ไข้สูง)' };
-            const bpMap = { 'unknown': 'ไม่ทราบ', 'normal': 'ปกติ', 'low': 'ต่ำ', 'high': 'สูง' };
-
-            const userQuery = `ข้อมูลผู้ป่วย:
-            - อายุ: ${formData.age}, เพศ: ${formData.gender}
-            - อุณหภูมิ: ${tempMap[formData.temperature]}
-            - ความดัน: ${bpMap[formData.pressure]}
-            - โรคประจำตัว: ${formData.underlying_conditions.join(', ')}
-            - แพ้ยา/อาหาร: ${formData.allergies || 'ไม่มี'}
-            - อาการ: ${formData.symptoms}
-            - ระดับความเจ็บ (1-10): ${formData.pain_score}
-            - เป็นมานาน: ${formData.duration} ${formData.duration_unit}`;
-
-            const fullPrompt = `${systemPrompt}\n\n${userQuery}`;
+**คำสั่งสำคัญ**: ให้วิเคราะห์ข้อมูลทั้งหมดและประเมินผลออกมาเป็น **ภาษาไทย** เท่านั้น
+ให้ตอบกลับในรูปแบบ JSON ดังนี้:
+{
+  "triageLevel": "ระดับความรุนแรง (เช่น อาการปกติ, เร่งด่วน, ฉุกเฉิน)",
+  "clinicalSummary": "สรุปอาการและสาเหตุที่เป็นไปได้",
+  "initialTreatment": "การรักษาเบื้องต้น ด้วยสมุนไพร ยา หรืออื่นๆ",
+  "doctorVisitCriteria": "ต้องพบแพทย์เมื่อไร",
+  "departmentReferral": "แผนกที่แนะนำ"
+}`;
 
             try {
-                // ✅ SINGLE SOURCE OF TRUTH: Worker Only (MODE: TRIAGE)
-                const workerResponse = await fetch("https://pamer.tontakankeawpang321.workers.dev", {
+                const response = await fetch("https://pamer.tontakankeawpang321.workers.dev", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        mode: 'triage',
-                        text: fullPrompt 
-                    })
+                    body: JSON.stringify({ mode: 'triage', text: fullPrompt })
                 });
-
-                if (!workerResponse.ok) {
-                    throw new Error("Worker connection failed (" + workerResponse.status + ")");
-                }
-
-                const data = await workerResponse.json();
-                const rawResponse = data.reply || (typeof data === 'string' ? data : '');
+                const data = await response.json();
+                const res = JSON.parse(data.reply.replace(/```json\n?|\n?```/g, '').trim());
                 
-                if (!rawResponse) {
-                     throw new Error('รูปแบบข้อมูลตอบกลับไม่ถูกต้อง');
-                }
+                document.getElementById('result-container').innerHTML = `
+                    <div class="bg-white rounded-2xl shadow-lg border-l-8 border-blue-600 p-6 fade-in-up">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-xl text-slate-800">${res.triageLevel}</h3>
+                            <div class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">AI Analysis</div>
+                        </div>
 
-                const content = parseAIResponse(rawResponse);
+                        <div class="space-y-5">
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <h4 class="font-bold text-blue-800 text-xs mb-1 uppercase flex items-center">
+                                    <i data-lucide="clipboard-check" class="w-3.5 h-3.5 mr-1.5"></i> สรุปอาการ
+                                </h4>
+                                <p class="text-sm text-slate-600 leading-relaxed">${res.clinicalSummary}</p>
+                            </div>
 
-                // Defaults
-                content.differentialDiagnosis = content.differentialDiagnosis || [];
-                content.lifestyleAdvice = content.lifestyleAdvice || [];
-                content.medicationAdvice = content.medicationAdvice || [];
-                content.redFlags = content.redFlags || [];
-                content.clinicalSummary = content.clinicalSummary || "ไม่สามารถสรุปข้อมูลได้";
-                content.departmentReferral = content.departmentReferral || "-";
-                content.immediateAction = content.immediateAction || "-";
-                
-                renderResult(content);
+                            <div class="bg-green-50 p-4 rounded-xl border border-green-100">
+                                <h4 class="font-bold text-green-800 text-xs mb-1 uppercase flex items-center">
+                                    <i data-lucide="leaf" class="w-3.5 h-3.5 mr-1.5"></i> การรักษาเบื้องต้น (สมุนไพร/ยา/อื่นๆ)
+                                </h4>
+                                <p class="text-sm text-green-900 leading-relaxed">${res.initialTreatment}</p>
+                            </div>
+
+                            <div class="bg-red-50 p-4 rounded-xl border border-red-100">
+                                <h4 class="font-bold text-red-800 text-xs mb-1 uppercase flex items-center">
+                                    <i data-lucide="alert-circle" class="w-3.5 h-3.5 mr-1.5"></i> ต้องพบแพทย์เมื่อไร
+                                </h4>
+                                <p class="text-sm text-red-900 leading-relaxed font-medium">${res.doctorVisitCriteria}</p>
+                            </div>
+
+                            <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                                <span class="text-[11px] text-slate-400 italic">แผนกแนะนำ: ${res.departmentReferral || 'เวชปฏิบัติทั่วไป'}</span>
+                                <div class="flex items-center text-[10px] text-slate-300">
+                                    <i data-lucide="shield-check" class="w-3 h-3 mr-1"></i> ปลอดภัยไว้ก่อน
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
                 setStep('result');
-
-            } catch (err) {
-                console.error(err);
-                showError('ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้ง (' + err.message + ')');
+                lucide.createIcons();
+            } catch (e) {
+                alert('ระบบขัดข้องชั่วคราว กรุณาลองใหม่');
                 setStep('input');
             }
         }
 
-        function renderResult(result) {
-            const container = document.getElementById('result-container');
-            const dept = document.getElementById('referral-dept');
+        // --- RIGHTS MODAL LOGIC ---
+        function openRightsModal() {
+            document.getElementById('rights-modal').classList.add('modal-active');
+            renderBenefitsList();
+            checkUpdateStatus();
+        }
 
-            let themeColor = "teal";
-            let iconName = "check-circle";
-            let statusText = "อาการทั่วไป (ไม่เร่งด่วน)";
-            let badgeBg = "bg-teal-100 text-teal-800 border-teal-200";
-            let borderColor = "border-teal-500";
-            
-            if (result.triageColor === 'red') {
-                themeColor = "red";
-                iconName = "alert-octagon";
-                statusText = "ฉุกเฉิน / อันตราย";
-                badgeBg = "bg-red-100 text-red-800 border-red-200";
-                borderColor = "border-red-500";
-            } else if (result.triageColor === 'yellow') {
-                themeColor = "amber";
-                iconName = "alert-triangle";
-                statusText = "ควรพบแพทย์ (เร่งด่วน)";
-                badgeBg = "bg-amber-100 text-amber-800 border-amber-200";
-                borderColor = "border-amber-500";
-            }
+        function closeRightsModal() {
+            document.getElementById('rights-modal').classList.remove('modal-active');
+        }
 
-            const diagnosisTags = result.differentialDiagnosis.map(dx => 
-                `<span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium border border-slate-200 shadow-sm">${dx}</span>`
-            ).join('');
-
-            const lifestyleList = result.lifestyleAdvice.map(item => 
-                `<li class="flex items-start text-base text-slate-700 mb-3">
-                    <div class="bg-slate-100 p-1 rounded-full mr-3 mt-0.5">
-                        <i data-lucide="check" class="w-3.5 h-3.5 text-${themeColor}-600"></i>
+        function renderBenefitsList() {
+            const container = document.getElementById('benefits-list');
+            container.innerHTML = allGoldCardBenefits.map(item => `
+                <div class="bg-white p-4 rounded-2xl border border-slate-100 flex items-start space-x-3">
+                    <div class="bg-${item.color}-100 p-2 rounded-xl text-${item.color}-600 flex-shrink-0">
+                        <i data-lucide="${item.icon}" class="w-5 h-5"></i>
                     </div>
-                    <span>${item}</span>
-                </li>`
-            ).join('');
-
-            const medItems = result.medicationAdvice && result.medicationAdvice.length > 0 
-                ? result.medicationAdvice.map(item => 
-                    `<li class="flex items-start text-base text-slate-700 mb-3">
-                        <div class="bg-blue-100 p-1 rounded-full mr-3 mt-0.5">
-                            <i data-lucide="pill" class="w-3.5 h-3.5 text-blue-600"></i>
-                        </div>
-                        <span>${item}</span>
-                    </li>`
-                ).join('') : '';
-
-            const redFlags = result.redFlags && result.redFlags.length > 0
-                ? result.redFlags.map(flag => 
-                    `<li class="flex items-start text-base text-red-700 mb-3 font-medium">
-                        <div class="bg-red-100 p-1 rounded-full mr-3 mt-0.5">
-                            <i data-lucide="alert-circle" class="w-4 h-4 text-red-600"></i>
-                        </div>
-                        <span>${flag}</span>
-                    </li>`
-                ).join('') : '';
-
-            container.innerHTML = `
-                <div class="bg-white rounded-2xl shadow-lg border-l-8 ${borderColor} overflow-hidden mb-6">
-                    <div class="p-6 border-b border-slate-100">
-                        <div class="flex items-center justify-between mb-3">
-                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">ระดับความรุนแรง</span>
-                            <span class="px-4 py-1.5 rounded-full text-xs font-bold border ${badgeBg}">${result.triageLevel || 'ประเมินแล้ว'}</span>
-                        </div>
-                        <h2 class="text-2xl font-bold text-slate-800 flex items-center">
-                            <i data-lucide="${iconName}" class="w-8 h-8 text-${themeColor}-600 mr-3"></i>
-                            ${statusText}
-                        </h2>
-                    </div>
-                    <div class="p-6 bg-slate-50/50">
-                        <h3 class="text-base font-bold text-slate-900 mb-3 flex items-center">
-                            <i data-lucide="stethoscope" class="w-5 h-5 mr-2 text-slate-500"></i>
-                            สรุปผลการวิเคราะห์
-                        </h3>
-                        <p class="text-slate-700 leading-relaxed mb-5 text-base bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                            ${result.clinicalSummary}
-                        </p>
-                        <div>
-                            <span class="text-xs font-bold text-slate-400 uppercase block mb-3">โรคที่เข้าข่าย:</span>
-                            <div class="flex flex-wrap gap-2">${diagnosisTags}</div>
-                        </div>
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-sm leading-tight mb-1">${item.title}</h4>
+                        <p class="text-[11px] text-slate-500 leading-relaxed">${item.desc}</p>
                     </div>
                 </div>
-
-                <div class="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden mb-6">
-                    <div class="px-6 py-5 border-b border-slate-100 bg-slate-50 flex items-center">
-                        <i data-lucide="clipboard-list" class="w-6 h-6 text-slate-600 mr-3"></i>
-                        <h3 class="font-bold text-lg text-slate-800">แผนการรักษา</h3>
-                    </div>
-                    
-                    <div class="p-6 space-y-8">
-                        <div>
-                            <h4 class="text-base font-bold text-${themeColor}-700 mb-3 flex items-center">
-                                <i data-lucide="zap" class="w-5 h-5 mr-2"></i>
-                                สิ่งที่ควรทำทันที
-                            </h4>
-                            <div class="bg-${themeColor}-50 p-5 rounded-xl border border-${themeColor}-100 text-base text-${themeColor}-900 font-medium leading-relaxed shadow-sm">
-                                ${result.immediateAction}
-                            </div>
-                        </div>
-
-                        <div>
-                            <h4 class="text-base font-bold text-slate-800 mb-3">การดูแลตนเอง</h4>
-                            <ul class="list-none">${lifestyleList}</ul>
-                        </div>
-
-                        ${medItems ? `
-                        <div>
-                            <h4 class="text-base font-bold text-slate-800 mb-3">ยาบรรเทาอาการ</h4>
-                            <ul class="list-none bg-blue-50/50 p-5 rounded-xl border border-blue-100">${medItems}</ul>
-                        </div>` : ''}
-                    </div>
-                </div>
-
-                ${redFlags ? `
-                <div class="bg-red-50 rounded-2xl shadow-md border border-red-200 overflow-hidden mb-6">
-                    <div class="px-6 py-5 border-b border-red-100 flex items-center text-red-800 bg-red-100/50">
-                        <i data-lucide="siren" class="w-6 h-6 mr-3"></i>
-                        <h3 class="font-bold text-lg">สัญญาณอันตราย (Red Flags)</h3>
-                    </div>
-                    <div class="p-6">
-                        <p class="text-sm text-red-600 mb-4 font-semibold">หากมีอาการดังต่อไปนี้ โปรดไปพบแพทย์ทันที:</p>
-                        <ul class="list-none space-y-1">${redFlags}</ul>
-                        ${result.doctorVisitCriteria ? `<div class="mt-6 pt-5 border-t border-red-200 text-sm font-semibold text-red-800 flex items-start bg-white/50 p-4 rounded-lg"><i data-lucide="clock" class="w-5 h-5 mr-2 flex-shrink-0 mt-0.5"></i> ${result.doctorVisitCriteria}</div>` : ''}
-                    </div>
-                </div>` : ''}
-            `;
-            
-            dept.textContent = result.departmentReferral || "-";
+            `).join('');
             lucide.createIcons();
         }
 
-        function setStep(stepName) {
-            const steps = ['input', 'loading', 'result'];
-            steps.forEach(s => {
-                const el = document.getElementById(`step-${s}`);
-                if (s === stepName) {
-                    el.classList.remove('hidden');
-                } else {
-                    el.classList.add('hidden');
-                }
-            });
+        function checkUpdateStatus() {
+            const lastDate = localStorage.getItem('last_ai_update_date');
+            if (lastDate === new Date().toDateString()) {
+                const btn = document.getElementById('btn-refresh-ai');
+                btn.disabled = true;
+                btn.className = "w-full bg-slate-100 text-slate-400 font-bold py-4 rounded-2xl flex items-center justify-center space-x-2 cursor-not-allowed";
+                btn.innerHTML = `<i data-lucide="check-circle" class="w-5 h-5"></i> <span>ข้อมูลสิทธิเป็นปัจจุบันแล้ว</span>`;
+                document.getElementById('last-update-text').textContent = "ล่าสุด: วันนี้";
+            }
+            lucide.createIcons();
+        }
+
+        async function updateBenefitsWithAI() {
+            const btn = document.getElementById('btn-refresh-ai');
+            const icon = document.getElementById('refresh-icon');
+            icon.classList.add('animate-spin');
+            btn.disabled = true;
+
+            await new Promise(r => setTimeout(r, 2000));
+            localStorage.setItem('last_ai_update_date', new Date().toDateString());
+            checkUpdateStatus();
+            icon.classList.remove('animate-spin');
+        }
+
+        // --- CHATBOT LOGIC ---
+        function toggleChat() {
+            const win = document.getElementById('chatbot-window');
+            win.classList.toggle('hidden');
+            if (!win.classList.contains('hidden')) document.getElementById('chat-input').focus();
+            lucide.createIcons();
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const box = document.getElementById('chat-messages');
+            box.innerHTML += `<div class="chat-bubble-user">${text}</div>`;
+            input.value = '';
+            box.scrollTop = box.scrollHeight;
+
+            const loadingId = 'loading-' + Date.now();
+            box.innerHTML += `<div id="${loadingId}" class="chat-bubble-bot flex space-x-1 items-center w-14 justify-center"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+            box.scrollTop = box.scrollHeight;
+
+            try {
+                const res = await fetch("https://pamer.tontakankeawpang321.workers.dev", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: 'chat', text: text })
+                });
+                const data = await res.json();
+                document.getElementById(loadingId).remove();
+                box.innerHTML += `<div class="chat-bubble-bot">${data.reply || "ขออภัยครับ ระบบขัดข้อง"}</div>`;
+            } catch (e) {
+                document.getElementById(loadingId).remove();
+                box.innerHTML += `<div class="chat-bubble-bot text-red-500">ระบบแชทขัดข้องชั่วคราว</div>`;
+            }
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function setStep(s) {
+            ['input', 'loading', 'result'].forEach(x => document.getElementById(`step-${x}`).classList.toggle('hidden', x !== s));
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function resetForm() {
             setStep('input');
-            document.getElementById('result-container').innerHTML = '';
-            document.getElementById('referral-dept').textContent = '-';
-        }
-
-        function showError(msg) {
-            const toast = document.getElementById('error-toast');
-            document.getElementById('error-message').textContent = msg;
-            toast.classList.remove('hidden');
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 5000);
+            document.getElementById('symptoms').value = '';
         }
     </script>
 </body>

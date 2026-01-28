@@ -1,9 +1,0 @@
-name = "pamer"
-main = "worker.js"
-compatibility_date = "2026-01-28"
-
-# ถ้าใช้ module syntax
-# compatibility_flags = ["nodejs_compat"]
-
-[vars]
-# ตัวแปรที่ไม่ลับ

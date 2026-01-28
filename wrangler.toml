@@ -1,2 +1,2 @@
-name = "pamer-id"
+name = "pamer"
 main = "src/index.js"

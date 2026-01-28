@@ -1,3 +1,19 @@
-name = "pamer-id"
-main = "src/index.js"
-compatibility_date = "2025-01-01"
+# Cloudflare Worker Configuration for MediCheck
+
+name = "medicheck-worker"
+main = "medicheck-worker.js"
+compatibility_date = "2024-01-29"
+
+# Environment Variables
+# คุณต้องเพิ่ม API Key ใน Cloudflare Dashboard:
+# Settings > Variables > Environment Variables
+# ตัวแปรที่ต้องเพิ่ม:
+# - OPENROUTER_API_KEY (Secret)
+
+[env.production]
+name = "medicheck-worker"
+vars = { ENVIRONMENT = "production" }
+
+[env.staging]
+name = "medicheck-worker-staging"
+vars = { ENVIRONMENT = "staging" }
